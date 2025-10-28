@@ -6,6 +6,6 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "pysat>=3.2.2",
-    "pycryptosat>=5.11.0",
+    "pycryptosat==5.11.21",
     "z3-solver>=4.15.3.0",
 ]

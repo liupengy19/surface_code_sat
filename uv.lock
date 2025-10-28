@@ -452,7 +452,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "pycryptosat", specifier = ">=5.11.0" },
+    { name = "pycryptosat", specifier = "==5.11.21" },
     { name = "pysat", specifier = ">=3.2.2" },
     { name = "z3-solver", specifier = ">=4.15.3.0" },
 ]
