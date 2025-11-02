@@ -1,0 +1,60 @@
+--------------------------------
+Testing distance 3 with bias 2 errors
+num vars: 659
+Build time: 0.0019550323486328125 seconds
+Check time: 0.00011801719665527344 seconds
+A code with distance 3 can tolerate 2 loss errors
+--------------------------------
+Testing distance 3 with bias 3 errors
+num vars: 659
+Build time: 0.0015308856964111328 seconds
+Check time: 0.00016880035400390625 seconds
+A code with distance 3 can't tolerate 3 loss errors
+--------------------------------
+Testing distance 5 with bias 4 errors
+num vars: 4360
+Build time: 0.02862095832824707 seconds
+Check time: 0.021817922592163086 seconds
+A code with distance 5 can tolerate 4 loss errors
+--------------------------------
+Testing distance 5 with bias 5 errors
+num vars: 4360
+Build time: 0.028770923614501953 seconds
+Check time: 0.006736040115356445 seconds
+A code with distance 5 can't tolerate 5 loss errors
+--------------------------------
+Testing distance 7 with bias 6 errors
+num vars: 14133
+Build time: 0.22571015357971191 seconds
+Check time: 1.6712939739227295 seconds
+A code with distance 7 can tolerate 6 loss errors
+--------------------------------
+Testing distance 7 with bias 7 errors
+num vars: 14133
+Build time: 0.21673798561096191 seconds
+Check time: 0.10780692100524902 seconds
+A code with distance 7 can't tolerate 7 loss errors
+--------------------------------
+Testing distance 9 with bias 8 errors
+num vars: 33496
+Build time: 1.0028929710388184 seconds
+Check time: 42.30074191093445 seconds
+A code with distance 9 can tolerate 8 loss errors
+--------------------------------
+Testing distance 9 with bias 9 errors
+num vars: 33496
+Build time: 1.0311188697814941 seconds
+Check time: 2.8845057487487793 seconds
+A code with distance 9 can't tolerate 9 loss errors
+--------------------------------
+Testing distance 11 with bias 10 errors
+num vars: 65843
+Build time: 3.4499928951263428 seconds
+Check time: 3767.1126861572266 seconds
+A code with distance 11 can tolerate 10 loss errors
+--------------------------------
+Testing distance 11 with bias 11 errors
+num vars: 65843
+Build time: 3.373002052307129 seconds
+Check time: 2.9901840686798096 seconds
+A code with distance 11 can't tolerate 11 loss errors
