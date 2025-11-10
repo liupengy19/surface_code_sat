@@ -6,24 +6,42 @@ CaDiCaL is a high-performance SAT solver accessed through PySAT.
 from pysat.solvers import Cadical195
 from encoding_utils import parse_dem_file, add_cardinality_constraint
 
+def encode_xor_false_cadical_bruteforce(solver, vars):
+    """
+    Encode XOR(vars) = False using brute force for CaDiCaL.
 
-def encode_xor_false_cadical(solver, vars):
+    Args:
+        solver: CaDiCaL solver object
+        vars: List of variable IDs
+    """
+    n = len(vars)
+
+    # Iterate over all 2^n assignments
+    for mask in range(1 << n):
+        # count ones (True assignments)
+        ones = bin(mask).count("1")
+        parity = ones % 2
+
+        # If parity is odd (i.e., XOR = True), forbid this assignment
+        if parity == 1:
+            solver.add_clause([-v if (mask >> i) & 1 == 1 else v for i, v in enumerate(vars)])
+    return
+
+
+def encode_xor_false_cadical_tseitin(solver, vars):
     """
     Encode XOR(vars) = False using Tseitin transformation for CaDiCaL.
 
     Args:
         solver: CaDiCaL solver object
         vars: List of variable IDs
-
-    Returns:
-        int: The next available variable ID after encoding
     """
     if len(vars) == 0:
         return
     if len(vars) == 1:
         solver.add_clause([-vars[0]])
         return
-
+    
     # For XOR chain: x1 XOR x2 XOR ... XOR xn = False
     # Use auxiliary variables
     next_var = solver.nof_vars() + 1
@@ -58,7 +76,82 @@ def _encode_xor_binary_cadical(solver, a, b, c):
     solver.add_clause([-a, b, c])    # NOT a AND b => c
 
 
-def build_verification_model(dem_path: str, max_errors: int):
+def encode_xor_false_cadical_tree(solver, vars):
+    """
+    Encode XOR(vars) = False using a tree-based Tseitin transformation for CaDiCaL.
+
+    Args:
+        solver: CaDiCaL solver object
+        vars:   List of variable IDs (positive integers)
+    """
+    vars = list(vars)
+    if len(vars) == 0:
+        return
+
+    if len(vars) == 1:
+        solver.add_clause([-vars[0]])
+        return
+
+    # We'll build a balanced XOR tree:
+    #  - At each level, pair up variables and introduce an aux var c = a XOR b.
+    #  - If there's an odd one out, just carry it up unchanged.
+    #  - The final single variable t at the root satisfies t = XOR(vars).
+    #  - Then enforce t = False.
+
+    next_var = solver.nof_vars() + 1
+
+    def new_var():
+        nonlocal next_var
+        v = next_var
+        next_var += 1
+        return v
+
+    current = vars
+    while len(current) > 1:
+        next_level = []
+        i = 0
+        n = len(current)
+        while i < n:
+            if i + 1 < n:
+                a = current[i]
+                b = current[i + 1]
+                c = new_var()
+                # c == a XOR b
+                _encode_xor_binary_cadical(solver, a, b, c)
+                next_level.append(c)
+                i += 2
+            else:
+                # Odd number of nodes: pass the last one up unchanged
+                next_level.append(current[i])
+                i += 1
+        current = next_level
+
+    # Root of the tree: t = XOR(original vars)
+    t = current[0]
+
+    # Enforce XOR(vars) = False  <=> t = False
+    solver.add_clause([-t])
+
+
+def encode_xor_false_cadical(solver, vars, method):
+    """
+    Encode XOR(vars) = False for CaDiCaL.
+
+    Args:
+        solver: CaDiCaL solver object
+        vars: List of variable IDs
+
+    """
+
+    if len(vars) <= 3:
+        encode_xor_false_cadical_bruteforce(solver, vars)
+    elif method == "chain_tseitin":
+        encode_xor_false_cadical_tseitin(solver, vars)
+    elif method == "tree_tseitin":
+        encode_xor_false_cadical_tree(solver, vars)
+
+
+def build_verification_model(dem_path: str, max_errors: int, xor_encoding_method="chain_tseitin"):
     """
     Build SAT model from a DEM file to verify if there exists
     an error pattern that:
@@ -99,7 +192,7 @@ def build_verification_model(dem_path: str, max_errors: int):
     for det_id in range(num_detectors):
         if detector_effects[det_id]:
             # Encode XOR = False using Tseitin transformation
-            encode_xor_false_cadical(solver, detector_effects[det_id])
+            encode_xor_false_cadical(solver, detector_effects[det_id], xor_encoding_method)
 
     # Constraint: at least one logical observable must be triggered (XOR = 1)
     # Create auxiliary variables for each observable's XOR result
@@ -110,29 +203,32 @@ def build_verification_model(dem_path: str, max_errors: int):
             obs_result_var = solver.nof_vars() + 1
             logical_result_vars.append(obs_result_var)
 
-            # Encode XOR chain for this observable
-            # XOR(e1, e2, ..., en) = obs_result_var
-            if len(logical_effects[obs_id]) == 1:
-                # Simple case: obs_result_var = e1
-                e1 = logical_effects[obs_id][0]
-                solver.add_clause([-e1, obs_result_var])
-                solver.add_clause([e1, -obs_result_var])
-            else:
-                # Complex case: need XOR chain
-                next_var = solver.nof_vars() + 1
-                aux_vars = list(range(next_var, next_var + len(logical_effects[obs_id]) - 1))
+            _vars = logical_effects[obs_id] + [obs_result_var]
+            encode_xor_false_cadical(solver, _vars, xor_encoding_method)
 
-                # Build XOR chain
-                vars_list = logical_effects[obs_id]
-                _encode_xor_binary_cadical(solver, vars_list[0], vars_list[1], aux_vars[0])
+            # # Encode XOR chain for this observable
+            # # XOR(e1, e2, ..., en) = obs_result_var
+            # if len(logical_effects[obs_id]) == 1:
+            #     # Simple case: obs_result_var = e1
+            #     e1 = logical_effects[obs_id][0]
+            #     solver.add_clause([-e1, obs_result_var])
+            #     solver.add_clause([e1, -obs_result_var])
+            # else:
+            #     # Complex case: need XOR chain
+            #     next_var = solver.nof_vars() + 1
+            #     aux_vars = list(range(next_var, next_var + len(logical_effects[obs_id]) - 1))
 
-                for i in range(1, len(aux_vars)):
-                    _encode_xor_binary_cadical(solver, aux_vars[i - 1], vars_list[i + 1], aux_vars[i])
+            #     # Build XOR chain
+            #     vars_list = logical_effects[obs_id]
+            #     _encode_xor_binary_cadical(solver, vars_list[0], vars_list[1], aux_vars[0])
 
-                # Link final auxiliary variable to observable result
-                final_aux = aux_vars[-1]
-                solver.add_clause([-final_aux, obs_result_var])
-                solver.add_clause([final_aux, -obs_result_var])
+            #     for i in range(1, len(aux_vars)):
+            #         _encode_xor_binary_cadical(solver, aux_vars[i - 1], vars_list[i + 1], aux_vars[i])
+
+            #     # Link final auxiliary variable to observable result
+            #     final_aux = aux_vars[-1]
+            #     solver.add_clause([-final_aux, obs_result_var])
+            #     solver.add_clause([final_aux, -obs_result_var])
 
     # At least one logical observable must be triggered
     if logical_result_vars:
@@ -153,34 +249,37 @@ def get_dem_path(distance: int) -> str:
 if __name__ == "__main__":
     import time
 
-    for distance in [3, 5, 7, 9, 11]:
-        for bias in [1, 0]:
-            print("--------------------------------")
-            print(f"Testing distance {distance} with bias {distance - bias} errors")
-            dem_path = get_dem_path(distance)
-            start_time = time.time()
-            solver, error_vars, detector_effects, logical_effects = build_verification_model(
-                dem_path, distance - bias
-            )
-            print(f"num vars: {solver.nof_vars()}")
-            build_time = time.time() - start_time
-            print(f"Build time: {build_time} seconds")
-            start_time = time.time()
-            sat = solver.solve()
-            check_time = time.time() - start_time
-            print(f"Check time: {check_time} seconds")
-            if sat:
-                print(
-                    f"A code with distance {distance} can't tolerate {distance - bias} loss errors"
+    # for distance in [3, 5, 7, 9, 11]:
+    for xor_encoding_method in ["chain_tseitin", "tree_tseitin"]:
+        print(f"Testing XOR encoding method: {xor_encoding_method}")
+        for distance in [3, 5, 7, 9]:
+            for bias in [1, 0]:
+                print("--------------------------------")
+                print(f"Testing distance {distance} with bias {distance - bias} errors")
+                dem_path = get_dem_path(distance)
+                start_time = time.time()
+                solver, error_vars, detector_effects, logical_effects = build_verification_model(
+                    dem_path, distance - bias
                 )
-                # Optional: print solution
-                # model = solver.get_model()
-                # active_errors = [i for i, var in enumerate(error_vars, 1) if var in model]
-                # print(f"Active errors: {active_errors}")
-            else:
-                print(
-                    f"A code with distance {distance} can tolerate {distance - bias} loss errors"
-                )
+                print(f"num vars: {solver.nof_vars()}")
+                build_time = time.time() - start_time
+                print(f"Build time: {build_time} seconds")
+                start_time = time.time()
+                sat = solver.solve()
+                check_time = time.time() - start_time
+                print(f"Check time: {check_time} seconds")
+                if sat:
+                    print(
+                        f"A code with distance {distance} can't tolerate {distance - bias} loss errors"
+                    )
+                    # Optional: print solution
+                    # model = solver.get_model()
+                    # active_errors = [i for i, var in enumerate(error_vars, 1) if var in model]
+                    # print(f"Active errors: {active_errors}")
+                else:
+                    print(
+                        f"A code with distance {distance} can tolerate {distance - bias} loss errors"
+                    )
 
-            # Clean up
-            solver.delete()
+                # Clean up
+                solver.delete()

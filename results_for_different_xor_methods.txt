@@ -1,0 +1,98 @@
+Testing XOR encoding method: chain_tseitin
+--------------------------------
+Testing distance 3 with bias 2 errors
+num vars: 660
+Build time: 0.0018208026885986328 seconds
+Check time: 0.0001125335693359375 seconds
+A code with distance 3 can tolerate 2 loss errors
+--------------------------------
+Testing distance 3 with bias 3 errors
+num vars: 660
+Build time: 0.0013418197631835938 seconds
+Check time: 0.000152587890625 seconds
+A code with distance 3 can't tolerate 3 loss errors
+--------------------------------
+Testing distance 5 with bias 4 errors
+num vars: 4361
+Build time: 0.03228402137756348 seconds
+Check time: 0.02165055274963379 seconds
+A code with distance 5 can tolerate 4 loss errors
+--------------------------------
+Testing distance 5 with bias 5 errors
+num vars: 4361
+Build time: 0.03130483627319336 seconds
+Check time: 0.006414651870727539 seconds
+A code with distance 5 can't tolerate 5 loss errors
+--------------------------------
+Testing distance 7 with bias 6 errors
+num vars: 14134
+Build time: 0.2911367416381836 seconds
+Check time: 1.867628574371338 seconds
+A code with distance 7 can tolerate 6 loss errors
+--------------------------------
+Testing distance 7 with bias 7 errors
+num vars: 14134
+Build time: 0.2536895275115967 seconds
+Check time: 0.14803862571716309 seconds
+A code with distance 7 can't tolerate 7 loss errors
+--------------------------------
+Testing distance 9 with bias 8 errors
+num vars: 33497
+Build time: 1.3048875331878662 seconds
+Check time: 46.17741370201111 seconds
+A code with distance 9 can tolerate 8 loss errors
+--------------------------------
+Testing distance 9 with bias 9 errors
+num vars: 33497
+Build time: 1.2254400253295898 seconds
+Check time: 3.826582670211792 seconds
+A code with distance 9 can't tolerate 9 loss errors
+Testing XOR encoding method: tree_tseitin
+--------------------------------
+Testing distance 3 with bias 2 errors
+num vars: 660
+Build time: 0.001836538314819336 seconds
+Check time: 0.00012493133544921875 seconds
+A code with distance 3 can tolerate 2 loss errors
+--------------------------------
+Testing distance 3 with bias 3 errors
+num vars: 660
+Build time: 0.0014193058013916016 seconds
+Check time: 0.0001697540283203125 seconds
+A code with distance 3 can't tolerate 3 loss errors
+--------------------------------
+Testing distance 5 with bias 4 errors
+num vars: 4361
+Build time: 0.029880046844482422 seconds
+Check time: 0.02286815643310547 seconds
+A code with distance 5 can tolerate 4 loss errors
+--------------------------------
+Testing distance 5 with bias 5 errors
+num vars: 4361
+Build time: 0.03031635284423828 seconds
+Check time: 0.00799560546875 seconds
+A code with distance 5 can't tolerate 5 loss errors
+--------------------------------
+Testing distance 7 with bias 6 errors
+num vars: 14134
+Build time: 0.23529577255249023 seconds
+Check time: 1.8553597927093506 seconds
+A code with distance 7 can tolerate 6 loss errors
+--------------------------------
+Testing distance 7 with bias 7 errors
+num vars: 14134
+Build time: -0.19426536560058594 seconds
+Check time: 0.14705109596252441 seconds
+A code with distance 7 can't tolerate 7 loss errors
+--------------------------------
+Testing distance 9 with bias 8 errors
+num vars: 33497
+Build time: 1.2194938659667969 seconds
+Check time: 47.08110284805298 seconds
+A code with distance 9 can tolerate 8 loss errors
+--------------------------------
+Testing distance 9 with bias 9 errors
+num vars: 33497
+Build time: 1.2189204692840576 seconds
+Check time: 3.926800489425659 seconds
+A code with distance 9 can't tolerate 9 loss errors
