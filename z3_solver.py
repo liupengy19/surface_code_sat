@@ -13,7 +13,7 @@ def build_verification_model(dem_path: str, max_errors: int):
     - Uses at most max_errors error mechanisms
     """
     # Parse DEM file
-    num_errors, num_detectors, num_observables, error_effects_list = parse_dem_file(
+    num_errors, num_detectors, num_observables, error_effects_list, detectors_by_x_coord = parse_dem_file(
         dem_path
     )
 

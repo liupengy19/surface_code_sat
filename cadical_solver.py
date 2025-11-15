@@ -38,6 +38,9 @@ def encode_xor_false_cadical(solver, vars):
 
     # Final result should be False
     solver.add_clause([-aux_vars[-1]])
+    # ! try some other encoding, for example, a complete tree instead of a chain
+    # ! brute force when len(vars) <= 4/
+    # ! https://github.com/jreeves3/Cardinality-CDCL
 
 
 def _encode_xor_binary_cadical(solver, a, b, c):
@@ -53,9 +56,9 @@ def _encode_xor_binary_cadical(solver, a, b, c):
     # c = a XOR b is equivalent to:
     # c <=> (a AND NOT b) OR (NOT a AND b)
     solver.add_clause([-a, -b, -c])  # NOT (a AND b AND c)
-    solver.add_clause([a, b, -c])    # (a OR b) => c is false when both true
-    solver.add_clause([a, -b, c])    # a AND NOT b => c
-    solver.add_clause([-a, b, c])    # NOT a AND b => c
+    solver.add_clause([a, b, -c])  # (a OR b) => c is false when both true
+    solver.add_clause([a, -b, c])  # a AND NOT b => c
+    solver.add_clause([-a, b, c])  # NOT a AND b => c
 
 
 def build_verification_model(dem_path: str, max_errors: int):
@@ -67,7 +70,13 @@ def build_verification_model(dem_path: str, max_errors: int):
     - Uses at most max_errors error mechanisms
     """
     # Parse DEM file
-    num_errors, num_detectors, num_observables, error_effects_list = parse_dem_file(dem_path)
+    (
+        num_errors,
+        num_detectors,
+        num_observables,
+        error_effects_list,
+        detectors_by_x_coord,
+    ) = parse_dem_file(dem_path)
 
     solver = Cadical195()
 
@@ -120,14 +129,20 @@ def build_verification_model(dem_path: str, max_errors: int):
             else:
                 # Complex case: need XOR chain
                 next_var = solver.nof_vars() + 1
-                aux_vars = list(range(next_var, next_var + len(logical_effects[obs_id]) - 1))
+                aux_vars = list(
+                    range(next_var, next_var + len(logical_effects[obs_id]) - 1)
+                )
 
                 # Build XOR chain
                 vars_list = logical_effects[obs_id]
-                _encode_xor_binary_cadical(solver, vars_list[0], vars_list[1], aux_vars[0])
+                _encode_xor_binary_cadical(
+                    solver, vars_list[0], vars_list[1], aux_vars[0]
+                )
 
                 for i in range(1, len(aux_vars)):
-                    _encode_xor_binary_cadical(solver, aux_vars[i - 1], vars_list[i + 1], aux_vars[i])
+                    _encode_xor_binary_cadical(
+                        solver, aux_vars[i - 1], vars_list[i + 1], aux_vars[i]
+                    )
 
                 # Link final auxiliary variable to observable result
                 final_aux = aux_vars[-1]
@@ -137,6 +152,46 @@ def build_verification_model(dem_path: str, max_errors: int):
     # At least one logical observable must be triggered
     if logical_result_vars:
         solver.add_clause(logical_result_vars)
+
+    # Group errors by x-coordinate combination of their affected detectors
+    # Only consider two types of errors:
+    # 1. Errors affecting 2 detectors with different x-coordinates (cross-column)
+    # 2. Errors affecting only 1 detector (boundary errors)
+    errors_by_x_coords = {}  # key: tuple of sorted x-coordinates
+    for error_idx, (detector_ids, observable_ids) in enumerate(error_effects_list):
+        error_var = error_vars[error_idx]
+
+        # Find x-coordinates of detectors this error affects
+        x_coords = set()
+        for det_id in detector_ids:
+            # Find which x-coordinate this detector belongs to
+            for x_coord, det_list in detectors_by_x_coord.items():
+                if det_id in det_list:
+                    x_coords.add(x_coord)
+
+        # Only include errors with 1 detector OR 2 detectors with different x-coords
+        if len(x_coords) == 1 or len(x_coords) == 2:
+            # Skip if 2 detectors but same x-coordinate (vertical errors)
+            if len(detector_ids) == 2 and len(x_coords) == 1:
+                continue
+
+            # Classify this error by its x-coordinate combination
+            x_coords_key = tuple(sorted(x_coords))
+            if x_coords_key not in errors_by_x_coords:
+                errors_by_x_coords[x_coords_key] = []
+            errors_by_x_coords[x_coords_key].append(error_var)
+
+    # Add connectivity constraints for each logical observable
+    # If a logical is triggered, at least one error from each category must be active
+    if logical_result_vars:
+        for logical_var in logical_result_vars:
+            print(f"Number of error categories: {len(errors_by_x_coords.keys())}")
+            for x_coords_key in sorted(errors_by_x_coords.keys()):
+                if errors_by_x_coords[x_coords_key]:
+                    # logical_var → (at least one error in this category)
+                    # ¬logical_var ∨ (e1 ∨ e2 ∨ ... ∨ en)
+                    clause = [-logical_var] + errors_by_x_coords[x_coords_key]
+                    solver.add_clause(clause)
 
     # Add cardinality constraint
     next_var = solver.nof_vars() + 1
@@ -159,8 +214,8 @@ if __name__ == "__main__":
             print(f"Testing distance {distance} with bias {distance - bias} errors")
             dem_path = get_dem_path(distance)
             start_time = time.time()
-            solver, error_vars, detector_effects, logical_effects = build_verification_model(
-                dem_path, distance - bias
+            solver, error_vars, detector_effects, logical_effects = (
+                build_verification_model(dem_path, distance - bias)
             )
             print(f"num vars: {solver.nof_vars()}")
             build_time = time.time() - start_time

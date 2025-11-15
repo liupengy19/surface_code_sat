@@ -12,12 +12,15 @@ def parse_dem_file(dem_path: str):
     Parse a DEM (Detector Error Model) file and extract error information.
 
     Returns:
-        tuple: (num_errors, num_detectors, num_observables, error_effects)
-        where error_effects is a list of tuples (detector_ids, observable_ids)
+        tuple: (num_errors, num_detectors, num_observables, error_effects, detectors_by_x_coord)
+        where:
+        - error_effects is a list of tuples (detector_ids, observable_ids)
+        - detectors_by_x_coord is a dict mapping x-coordinate to list of detector IDs
     """
     error_effects = []
     num_detectors = 0
     num_observables = 0
+    detectors_by_x_coord = {}
 
     with open(dem_path, "r") as f:
         for line in f:
@@ -45,12 +48,24 @@ def parse_dem_file(dem_path: str):
 
                 error_effects.append((detector_ids, observable_ids))
 
-            # Parse detector definition lines to get accurate count
+            # Parse detector definition lines to get accurate count and coordinates
             elif line.startswith("detector"):
-                match = re.search(r"D(\d+)", line)
-                if match:
-                    det_id = int(match.group(1))
+                # Extract detector ID
+                match_id = re.search(r"D(\d+)", line)
+                if match_id:
+                    det_id = int(match_id.group(1))
                     num_detectors = max(num_detectors, det_id + 1)
+
+                # Extract coordinates: detector[TYPE](x, y, t, ...) D#
+                match_coords = re.search(r"\((\d+),\s*(\d+),\s*(\d+)", line)
+                if match_coords and match_id:
+                    x_coord = int(match_coords.group(1))
+                    det_id = int(match_id.group(1))
+
+                    # Group detectors by x-coordinate
+                    if x_coord not in detectors_by_x_coord:
+                        detectors_by_x_coord[x_coord] = []
+                    detectors_by_x_coord[x_coord].append(det_id)
 
             # Parse logical observable definition lines
             elif line.startswith("logical_observable"):
@@ -60,7 +75,7 @@ def parse_dem_file(dem_path: str):
                     num_observables = max(num_observables, obs_id + 1)
 
     num_errors = len(error_effects)
-    return num_errors, num_detectors, num_observables, error_effects
+    return num_errors, num_detectors, num_observables, error_effects, detectors_by_x_coord
 
 
 def encode_xor_false(wcnf, vars, next_var):

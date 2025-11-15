@@ -19,7 +19,7 @@ def build_maxsat_model(dem_path: str):
     Objective: Maximize errors NOT occurring = Minimize errors occurring
     """
     # Parse DEM file
-    num_errors, num_detectors, num_observables, error_effects_list = parse_dem_file(dem_path)
+    num_errors, num_detectors, num_observables, error_effects_list, detectors_by_x_coord = parse_dem_file(dem_path)
 
     wcnf = WCNF()
 
