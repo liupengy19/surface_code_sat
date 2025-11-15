@@ -6,6 +6,7 @@ CaDiCaL is a high-performance SAT solver accessed through PySAT.
 from pysat.solvers import Cadical195
 from encoding_utils import parse_dem_file, add_cardinality_constraint
 
+
 def encode_xor_false_cadical_bruteforce(solver, vars):
     """
     Encode XOR(vars) = False using brute force for CaDiCaL.
@@ -24,7 +25,9 @@ def encode_xor_false_cadical_bruteforce(solver, vars):
 
         # If parity is odd (i.e., XOR = True), forbid this assignment
         if parity == 1:
-            solver.add_clause([-v if (mask >> i) & 1 == 1 else v for i, v in enumerate(vars)])
+            solver.add_clause(
+                [-v if (mask >> i) & 1 == 1 else v for i, v in enumerate(vars)]
+            )
     return
 
 
@@ -41,7 +44,7 @@ def encode_xor_false_cadical_tseitin(solver, vars):
     if len(vars) == 1:
         solver.add_clause([-vars[0]])
         return
-    
+
     # For XOR chain: x1 XOR x2 XOR ... XOR xn = False
     # Use auxiliary variables
     next_var = solver.nof_vars() + 1
@@ -154,7 +157,9 @@ def encode_xor_false_cadical(solver, vars, method):
         encode_xor_false_cadical_tree(solver, vars)
 
 
-def build_verification_model(dem_path: str, max_errors: int, xor_encoding_method="chain_tseitin"):
+def build_verification_model(
+    dem_path: str, max_errors: int, xor_encoding_method="chain_tseitin"
+):
     """
     Build SAT model from a DEM file to verify if there exists
     an error pattern that:
@@ -201,7 +206,9 @@ def build_verification_model(dem_path: str, max_errors: int, xor_encoding_method
     for det_id in range(num_detectors):
         if detector_effects[det_id]:
             # Encode XOR = False using Tseitin transformation
-            encode_xor_false_cadical(solver, detector_effects[det_id], xor_encoding_method)
+            encode_xor_false_cadical(
+                solver, detector_effects[det_id], xor_encoding_method
+            )
 
     # Constraint: at least one logical observable must be triggered (XOR = 1)
     # Create auxiliary variables for each observable's XOR result
@@ -249,15 +256,15 @@ def build_verification_model(dem_path: str, max_errors: int, xor_encoding_method
 
     # Add connectivity constraints for each logical observable
     # If a logical is triggered, at least one error from each category must be active
-    if logical_result_vars:
-        for logical_var in logical_result_vars:
-            print(f"Number of error categories: {len(errors_by_x_coords.keys())}")
-            for x_coords_key in sorted(errors_by_x_coords.keys()):
-                if errors_by_x_coords[x_coords_key]:
-                    # logical_var → (at least one error in this category)
-                    # ¬logical_var ∨ (e1 ∨ e2 ∨ ... ∨ en)
-                    clause = [-logical_var] + errors_by_x_coords[x_coords_key]
-                    solver.add_clause(clause)
+    # if logical_result_vars:
+    #     for logical_var in logical_result_vars:
+    #         print(f"Number of error categories: {len(errors_by_x_coords.keys())}")
+    #         for x_coords_key in sorted(errors_by_x_coords.keys()):
+    #             if errors_by_x_coords[x_coords_key]:
+    #                 # logical_var → (at least one error in this category)
+    #                 # ¬logical_var ∨ (e1 ∨ e2 ∨ ... ∨ en)
+    #                 clause = [-logical_var] + errors_by_x_coords[x_coords_key]
+    #                 solver.add_clause(clause)
 
     # Add cardinality constraint
     next_var = solver.nof_vars() + 1
@@ -266,45 +273,96 @@ def build_verification_model(dem_path: str, max_errors: int, xor_encoding_method
     return solver, error_vars, detector_effects, logical_effects
 
 
-def get_dem_path(distance: int) -> str:
+def get_dem_path(distance: int, buggy: bool = False) -> str:
     """Return the path to the DEM file for the given distance."""
-    return f"circuits/circuit_{distance}.dem"
+    if buggy:
+        return f"buggy_circuits/circuit_{distance}.dem"
+    else:
+        return f"circuits/circuit_{distance}.dem"
 
 
+# Run the correct circuit
+# if __name__ == "__main__":
+#     import time
+
+#     # for distance in [3, 5, 7, 9, 11]:
+#     for xor_encoding_method in ["chain_tseitin", "tree_tseitin"]:
+#         print(f"Testing XOR encoding method: {xor_encoding_method}")
+#         for distance in [3, 5, 7, 9]:
+#             for bias in [1, 0]:
+#                 print("--------------------------------")
+#                 print(f"Testing distance {distance} with bias {distance - bias} errors")
+#                 dem_path = get_dem_path(distance)
+#                 start_time = time.time()
+#                 solver, error_vars, detector_effects, logical_effects = (
+#                     build_verification_model(
+#                         dem_path, distance - bias, xor_encoding_method
+#                     )
+#                 )
+#                 print(f"num vars: {solver.nof_vars()}")
+#                 build_time = time.time() - start_time
+#                 print(f"Build time: {build_time} seconds")
+#                 start_time = time.time()
+#                 sat = solver.solve()
+#                 check_time = time.time() - start_time
+#                 print(f"Check time: {check_time} seconds")
+#                 if sat:
+#                     print(
+#                         f"A code with distance {distance} can't tolerate {distance - bias} loss errors"
+#                     )
+#                     # Optional: print solution
+#                     # model = solver.get_model()
+#                     # active_errors = [i for i, var in enumerate(error_vars, 1) if var in model]
+#                     # print(f"Active errors: {active_errors}")
+#                 else:
+#                     print(
+#                         f"A code with distance {distance} can tolerate {distance - bias} loss errors"
+#                     )
+
+#                 # Clean up
+#                 solver.delete()
+# Run the buggy circuit
 if __name__ == "__main__":
     import time
 
     # for distance in [3, 5, 7, 9, 11]:
-    for xor_encoding_method in ["chain_tseitin", "tree_tseitin"]:
-        print(f"Testing XOR encoding method: {xor_encoding_method}")
-        for distance in [3, 5, 7, 9]:
-            for bias in [1, 0]:
-                print("--------------------------------")
-                print(f"Testing distance {distance} with bias {distance - bias} errors")
-                dem_path = get_dem_path(distance)
-                start_time = time.time()
-                solver, error_vars, detector_effects, logical_effects = build_verification_model(
-                    dem_path, distance - bias, xor_encoding_method
+    xor_encoding_method = "chain_tseitin"
+    max_error_dict = {
+        3: [1, 2],
+        5: [3, 4],
+        7: [4, 5],
+        9: [6, 7],
+        11: [7, 8],
+        13: [9, 10],
+    }
+    for distance in [3, 5, 7, 9, 11, 13]:
+        for max_error in max_error_dict[distance]:
+            print("--------------------------------")
+            print(f"Testing distance {distance} with max error {max_error} errors")
+            dem_path = get_dem_path(distance, buggy=True)
+            start_time = time.time()
+            solver, error_vars, detector_effects, logical_effects = (
+                build_verification_model(dem_path, max_error, xor_encoding_method)
+            )
+            print(f"num vars: {solver.nof_vars()}")
+            build_time = time.time() - start_time
+            print(f"Build time: {build_time} seconds")
+            start_time = time.time()
+            sat = solver.solve()
+            check_time = time.time() - start_time
+            print(f"Check time: {check_time} seconds")
+            if sat:
+                print(
+                    f"A code with distance {distance} can't tolerate {max_error} loss errors"
                 )
-                print(f"num vars: {solver.nof_vars()}")
-                build_time = time.time() - start_time
-                print(f"Build time: {build_time} seconds")
-                start_time = time.time()
-                sat = solver.solve()
-                check_time = time.time() - start_time
-                print(f"Check time: {check_time} seconds")
-                if sat:
-                    print(
-                        f"A code with distance {distance} can't tolerate {distance - bias} loss errors"
-                    )
-                    # Optional: print solution
-                    # model = solver.get_model()
-                    # active_errors = [i for i, var in enumerate(error_vars, 1) if var in model]
-                    # print(f"Active errors: {active_errors}")
-                else:
-                    print(
-                        f"A code with distance {distance} can tolerate {distance - bias} loss errors"
-                    )
+                # Optional: print solution
+                # model = solver.get_model()
+                # active_errors = [i for i, var in enumerate(error_vars, 1) if var in model]
+                # print(f"Active errors: {active_errors}")
+            else:
+                print(
+                    f"A code with distance {distance} can tolerate {max_error} loss errors"
+                )
 
-                # Clean up
-                solver.delete()
+            # Clean up
+            solver.delete()
