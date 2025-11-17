@@ -31,7 +31,7 @@ def encode_xor_false_cadical_bruteforce(solver, vars):
     return
 
 
-def encode_xor_false_cadical_tseitin(solver, vars):
+def encode_xor_false_cadical_tseitin(solver, vars, base_len=2):
     """
     Encode XOR(vars) = False using Tseitin transformation for CaDiCaL.
 
@@ -39,29 +39,26 @@ def encode_xor_false_cadical_tseitin(solver, vars):
         solver: CaDiCaL solver object
         vars: List of variable IDs
     """
-    if len(vars) == 0:
-        return
-    if len(vars) == 1:
-        solver.add_clause([-vars[0]])
-        return
+    if len(vars) < base_len:
+        encode_xor_false_cadical_bruteforce(solver, vars)
+
+    from math import ceil
+    num_aux_vars = ceil((len(vars) - 1) / (base_len - 1))
 
     # For XOR chain: x1 XOR x2 XOR ... XOR xn = False
     # Use auxiliary variables
     next_var = solver.nof_vars() + 1
-    aux_vars = list(range(next_var, next_var + len(vars) - 1))
+    aux_vars = list(range(next_var, next_var + num_aux_vars))
 
-    # aux[0] = x1 XOR x2
-    _encode_xor_binary_cadical(solver, vars[0], vars[1], aux_vars[0])
+    tail = vars[0]
+    for i in range(num_aux_vars):
+        lo = i * (base_len - 1) + 1
+        hi = min(lo + base_len - 1, len(vars))
+        current_vars = [tail] + vars[lo:hi] + [aux_vars[i]]
+        encode_xor_false_cadical_bruteforce(solver, current_vars)
+        tail = aux_vars[i]
 
-    # aux[i] = aux[i-1] XOR x[i+2]
-    for i in range(1, len(aux_vars)):
-        _encode_xor_binary_cadical(solver, aux_vars[i - 1], vars[i + 1], aux_vars[i])
-
-    # Final result should be False
-    solver.add_clause([-aux_vars[-1]])
-    # ! try some other encoding, for example, a complete tree instead of a chain
-    # ! brute force when len(vars) <= 4/
-    # ! https://github.com/jreeves3/Cardinality-CDCL
+    solver.add_clause([-tail])
 
 
 def _encode_xor_binary_cadical(solver, a, b, c):
@@ -82,7 +79,7 @@ def _encode_xor_binary_cadical(solver, a, b, c):
     solver.add_clause([-a, b, c])  # NOT a AND b => c
 
 
-def encode_xor_false_cadical_tree(solver, vars):
+def encode_xor_false_cadical_tree(solver, vars, base_len=2):
     """
     Encode XOR(vars) = False using a tree-based Tseitin transformation for CaDiCaL.
 
@@ -90,13 +87,8 @@ def encode_xor_false_cadical_tree(solver, vars):
         solver: CaDiCaL solver object
         vars:   List of variable IDs (positive integers)
     """
-    vars = list(vars)
-    if len(vars) == 0:
-        return
-
-    if len(vars) == 1:
-        solver.add_clause([-vars[0]])
-        return
+    if len(vars) < base_len:
+        encode_xor_false_cadical_bruteforce(solver, vars)
 
     # We'll build a balanced XOR tree:
     #  - At each level, pair up variables and introduce an aux var c = a XOR b.
@@ -118,18 +110,13 @@ def encode_xor_false_cadical_tree(solver, vars):
         i = 0
         n = len(current)
         while i < n:
-            if i + 1 < n:
-                a = current[i]
-                b = current[i + 1]
-                c = new_var()
-                # c == a XOR b
-                _encode_xor_binary_cadical(solver, a, b, c)
-                next_level.append(c)
-                i += 2
-            else:
-                # Odd number of nodes: pass the last one up unchanged
-                next_level.append(current[i])
-                i += 1
+            lo = i
+            hi = min(i + base_len, n)
+            parent = new_var()
+            encode_xor_false_cadical_bruteforce(solver, [parent] + current[lo:hi])
+            next_level.append(parent)
+            i = hi
+
         current = next_level
 
     # Root of the tree: t = XOR(original vars)
@@ -139,7 +126,7 @@ def encode_xor_false_cadical_tree(solver, vars):
     solver.add_clause([-t])
 
 
-def encode_xor_false_cadical(solver, vars, method):
+def encode_xor_false_cadical(solver, vars, method, base_len=2):
     """
     Encode XOR(vars) = False for CaDiCaL.
 
@@ -149,7 +136,7 @@ def encode_xor_false_cadical(solver, vars, method):
 
     """
 
-    if len(vars) <= 3:
+    if len(vars) <= base_len:
         encode_xor_false_cadical_bruteforce(solver, vars)
     elif method == "chain_tseitin":
         encode_xor_false_cadical_tseitin(solver, vars)
@@ -158,7 +145,7 @@ def encode_xor_false_cadical(solver, vars, method):
 
 
 def build_verification_model(
-    dem_path: str, max_errors: int, xor_encoding_method="chain_tseitin"
+    dem_path: str, max_errors: int, xor_encoding_method="chain_tseitin", base_len=2,
 ):
     """
     Build SAT model from a DEM file to verify if there exists
@@ -335,34 +322,43 @@ if __name__ == "__main__":
         11: [7, 8],
         13: [9, 10],
     }
-    for distance in [3, 5, 7, 9, 11, 13]:
-        for max_error in max_error_dict[distance]:
-            print("--------------------------------")
-            print(f"Testing distance {distance} with max error {max_error} errors")
-            dem_path = get_dem_path(distance, buggy=True)
-            start_time = time.time()
-            solver, error_vars, detector_effects, logical_effects = (
-                build_verification_model(dem_path, max_error, xor_encoding_method)
-            )
-            print(f"num vars: {solver.nof_vars()}")
-            build_time = time.time() - start_time
-            print(f"Build time: {build_time} seconds")
-            start_time = time.time()
-            sat = solver.solve()
-            check_time = time.time() - start_time
-            print(f"Check time: {check_time} seconds")
-            if sat:
-                print(
-                    f"A code with distance {distance} can't tolerate {max_error} loss errors"
-                )
-                # Optional: print solution
-                # model = solver.get_model()
-                # active_errors = [i for i, var in enumerate(error_vars, 1) if var in model]
-                # print(f"Active errors: {active_errors}")
-            else:
-                print(
-                    f"A code with distance {distance} can tolerate {max_error} loss errors"
-                )
+    perf_dict = {}
+    for xor_encoding_method in ["chain_tseitin", "tree_tseitin"]:
+        for base_len in [2, 3]:
+            for distance in [3, 5, 7, 9, 11, 13]:
+                for max_error in max_error_dict[distance]:
+                    print("--------------------------------")
+                    print(f"Testing distance {distance} with max error {max_error} errors")
+                    dem_path = get_dem_path(distance, buggy=True)
+                    start_time = time.time()
+                    solver, error_vars, detector_effects, logical_effects = (
+                        build_verification_model(dem_path, max_error, xor_encoding_method)
+                    )
+                    print(f"num vars: {solver.nof_vars()}")
+                    build_time = time.time() - start_time
+                    print(f"Build time: {build_time} seconds")
+                    start_time = time.time()
+                    sat = solver.solve()
+                    check_time = time.time() - start_time
+                    print(f"Check time: {check_time} seconds")
+                    perf_dict[(distance, max_error, xor_encoding_method, base_len)] = (build_time, check_time, sat)
+                    if sat:
+                        print(
+                            f"A code with distance {distance} can't tolerate {max_error} loss errors"
+                        )
+                        # Optional: print solution
+                        # model = solver.get_model()
+                        # active_errors = [i for i, var in enumerate(error_vars, 1) if var in model]
+                        # print(f"Active errors: {active_errors}")
+                    else:
+                        print(
+                            f"A code with distance {distance} can tolerate {max_error} loss errors"
+                        )
 
-            # Clean up
-            solver.delete()
+                    # Clean up
+                    solver.delete()
+
+    with open("perf_dict.csv", "w") as f:
+        f.write("distance,max_error,xor_encoding_method,base_len,build_time,check_time,sat\n")
+        for (distance, max_error, xor_encoding_method, base_len), (build_time, check_time, sat) in perf_dict.items():
+            f.write(f"{distance},{max_error},{xor_encoding_method},{base_len},{build_time},{check_time},{sat}\n")
