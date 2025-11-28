@@ -1,0 +1,250 @@
+\documentclass{beamer}
+\usetheme{Madrid}
+\usecolortheme{default}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usepackage[table]{xcolor}
+
+\title{Verifying Quantum Error Correction Codes with SAT Solvers}
+\subtitle{Finding Bugs in Surface Code Implementations}
+\author{Pengyu Liu, Mengdi Wu}
+\date{December 1, 2025}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Outline}
+  \tableofcontents
+\end{frame}
+
+\section{Introduction}
+
+\begin{frame}{What is Quantum Error Correction?}
+  \begin{itemize}
+    \item Quantum computers are susceptible to errors from decoherence and noise
+    \item Quantum error correction codes protect quantum information
+    \item Key question: \textbf{How do we evaluate whether a quantum
+      error correction code is good?}
+      \begin{itemize}
+        \item Can it correct a certain number of errors?
+        \item What is the maximum number of correctable errors?
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{What is the Surface Code?}
+  \begin{itemize}
+    \item One of the most promising quantum error correction codes
+    \item Based on topological properties
+    \item Qubits arranged in a 2D lattice
+    \item Error correction performed through stabilizer measurements
+    \item Widely studied and implemented in quantum computing platforms
+  \end{itemize}
+\end{frame}
+
+\section{Encoding}
+
+\begin{frame}{SAT Encoding Techniques}
+  \textbf{Goal:} Encode quantum error correction verification as a SAT problem
+
+  \vspace{1em}
+
+  \textbf{Key Encodings:}
+  \begin{itemize}
+    \item \textbf{Totalizer encoding} for cardinality constraints
+      \begin{itemize}
+        \item Efficiently encode constraints like ``at most $k$ errors occur''
+      \end{itemize}
+    \item \textbf{Tree encoding} for XOR constraints
+      \begin{itemize}
+        \item Handle parity checks efficiently
+      \end{itemize}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Verification Strategy}
+  \textbf{Two types of problems:}
+
+  \vspace{1em}
+
+  \begin{block}{Can the code correct $k$ errors? (UNSAT Problem)}
+    \begin{itemize}
+      \item Try to find a counterexample with $\leq k$ errors that
+        cannot be corrected
+      \item If UNSAT, the code can correct $k$ errors
+    \end{itemize}
+  \end{block}
+
+  \vspace{0.5em}
+
+  \begin{block}{Can the code fail with $k$ errors? (SAT Problem)}
+    \begin{itemize}
+      \item Try to find an example with $\leq k$ errors that leads to failure
+      \item If SAT, the code cannot correct all $k$-error cases
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\section{Results}
+
+\begin{frame}{Bug Discovery in Nature Paper}
+  \textbf{Major Achievement:} We successfully identified and verified
+  a bug in a recently published Nature paper!
+
+  \vspace{1em}
+
+  \begin{table}
+    \centering
+    \begin{tabular}{ccc}
+      \toprule
+      \textbf{Distance} & \textbf{Actual Correctable Errors} &
+      \textbf{Claimed} \\
+      \midrule
+      3  & 0 & 0 \\
+      5  & 1 & 1 \\
+      7  & 2 & 2 \\
+      9  & 3 & 3 \\
+      \rowcolor{red!20}
+      11 & \textcolor{red}{\textbf{3}} & 4 \\
+      \rowcolor{red!20}
+      13 & \textcolor{red}{\textbf{4}} & 5 \\
+      \bottomrule
+    \end{tabular}
+  \end{table}
+
+  \vspace{0.5em}
+  \small{The code fails to correct the claimed number of errors for
+  distances 11 and 13!}
+\end{frame}
+
+\begin{frame}{Performance Results}
+  \textbf{Bug Detection: Pretty Fast! $\checkmark$}
+
+  \vspace{1em}
+
+  \begin{itemize}
+    \item SAT solver quickly finds counterexamples
+    \item Verification of bug completed in reasonable time
+    \item Demonstrates effectiveness of SAT-based approach
+  \end{itemize}
+
+  \vspace{1em}
+
+  \begin{center}
+    \textit{Runtime details: [Include specific timing results]}
+  \end{center}
+\end{frame}
+
+\section{Challenges}
+
+\begin{frame}{The Verification Challenge}
+  \begin{block}{The Problem}
+    We can propose a fix for the bug, but we \textbf{cannot verify}
+    whether it works using SAT solvers alone.
+  \end{block}
+
+  \vspace{1em}
+
+  \textbf{Verification is very slow...}
+
+  \vspace{0.5em}
+
+  \begin{itemize}
+    \item Proving correctness requires solving UNSAT problems
+    \item Much harder than finding bugs (SAT problems)
+  \end{itemize}
+
+  \vspace{1em}
+
+  \begin{center}
+    \textit{Runtime details: }
+  \end{center}
+\end{frame}
+
+\begin{frame}{Why is This So Hard?}
+  \textbf{Combination of SAT solver weaknesses:}
+
+  \vspace{1em}
+
+  \begin{enumerate}
+    \item \textbf{UNSAT problems}
+      \begin{itemize}
+        \item Proving non-existence is inherently harder than finding examples
+      \end{itemize}
+
+    \item \textbf{XOR encodings}
+      \begin{itemize}
+        \item SAT solvers struggle with parity constraints
+      \end{itemize}
+
+    \item \textbf{Cardinality constraints}
+      \begin{itemize}
+        \item ``At most $k$ errors'' constraints are challenging
+      \end{itemize}
+
+    \item \textbf{Pigeonhole principle}
+      \begin{itemize}
+        \item Notoriously hard for SAT solvers
+      \end{itemize}
+  \end{enumerate}
+
+  \vspace{0.5em}
+  \small{Each alone is challenging; together they are formidable!}
+\end{frame}
+
+\section{Conclusion and Future Work}
+
+\begin{frame}{A Hybrid Approach}
+  \textbf{Leverage the strengths of different tools:}
+
+  \vspace{1em}
+
+  \begin{block}{SAT Solvers: Fast Pruning}
+    \begin{itemize}
+      \item Quickly find bugs and counterexamples
+      \item Prune the search space efficiently
+      \item Identify promising candidates
+    \end{itemize}
+  \end{block}
+
+  \vspace{0.5em}
+
+  \begin{block}{Lean Theorem Prover: Formal Verification}
+    \begin{itemize}
+      \item Formally verify correctness of proposed fixes
+      \item Provide mathematical proof of error correction properties
+      \item Guarantee correctness where SAT solvers struggle
+    \end{itemize}
+  \end{block}
+
+  \vspace{1em}
+  \centering
+  \textbf{Combine SAT and Lean for comprehensive verification!}
+\end{frame}
+
+\begin{frame}{Summary}
+  \begin{itemize}
+    \item \textbf{Problem:} Verifying quantum error correction codes
+    \item \textbf{Approach:} SAT solver with specialized encodings
+    \item \textbf{Success:} Found bugs in published Nature paper
+    \item \textbf{Challenge:} Verifying fixes is computationally hard
+    \item \textbf{Future:} Hybrid SAT + Lean approach
+  \end{itemize}
+
+  \vspace{2em}
+
+  \begin{center}
+    \Large{\textbf{Thank you!}}
+
+    \vspace{1em}
+
+    \normalsize{Questions?}
+  \end{center}
+\end{frame}
+
+\end{document}
+
