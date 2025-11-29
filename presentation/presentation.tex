@@ -23,47 +23,322 @@
 
 \section{Introduction}
 
-\begin{frame}{What is Quantum Error Correction?}
+% \begin{frame}{What is Quantum Error Correction?}
+%   \begin{itemize}
+%     \item Quantum computers are susceptible to errors from
+% decoherence and noise
+%     \item Quantum error correction codes protect quantum information
+%     \item \textbf{Unlike classical systems:} Errors occur
+%       \textit{during computation}, not just in storage
+%   \end{itemize}
+% \end{frame}
+
+\begin{frame}{Why Quantum Error Correction is Different}
+  \textbf{Classical Error Correction:}
   \begin{itemize}
-    \item Quantum computers are susceptible to errors from decoherence and noise
-    \item Quantum error correction codes protect quantum information
-    \item Key question: \textbf{How do we evaluate whether a quantum
-      error correction code is good?}
-      \begin{itemize}
-        \item Can it correct a certain number of errors?
-        \item What is the maximum number of correctable errors?
-      \end{itemize}
+    \item Errors mainly occur during transmission/storage
+    \item Can copy data freely for redundancy
+    \item Can measure directly without disturbing data
+  \end{itemize}
+
+  \vspace{1em}
+
+  \textbf{Quantum Error Correction:}
+  \begin{itemize}
+    \item \textcolor{red}{\textbf{Errors occur continuously during computation}}
+    \item No-cloning theorem: cannot copy quantum states
+    \item Measurement collapses quantum states
+    \item Must use \textit{indirect measurements} through \textbf{stabilizers}
   \end{itemize}
 \end{frame}
 
-\begin{frame}{What is the Surface Code?}
+\begin{frame}{Detectors: Measuring Errors Indirectly}
+  \textbf{Challenge:} Direct measurement destroys quantum states
+
+  \vspace{1em}
+
+  \textbf{Solution: Detectors (Stabilizer Measurements)}
   \begin{itemize}
-    \item One of the most promising quantum error correction codes
-    \item Based on topological properties
-    \item Qubits arranged in a 2D lattice
-    \item Error correction performed through stabilizer measurements
-    \item Widely studied and implemented in quantum computing platforms
+    \item Measure \textit{parity} (XOR) of multiple qubits
+    \item Detector fires when odd number of errors occur
+    \item Reveals error \textit{syndrome}, not the quantum state
+  \end{itemize}
+
+  \vspace{1em}
+
+  \begin{block}{Key Idea}
+    Different error patterns $\rightarrow$ different syndromes
+    $\rightarrow$ error correction possible
+  \end{block}
+\end{frame}
+
+\begin{frame}{Evaluation of Quantum Error Correction Codes}
+  \textbf{Key question: How do we evaluate whether a quantum error
+  correction code is good?}
+
+  \vspace{1em}
+
+  \begin{itemize}
+    \item Can it correct a certain number of errors?
+    \item What is the maximum number of correctable errors?
+    \item Do different error patterns produce distinguishable
+      detector syndromes?
+  \end{itemize}
+
+  \vspace{1em}
+
+  \begin{block}{The Distance $d$ of a Code}
+    A code with distance $d$ can correct up to $\lfloor \frac{d-1}{2}
+    \rfloor$ errors.
+    \begin{itemize}
+      \item Distance 3 code: corrects 1 error
+      \item Distance 5 code: corrects 2 errors
+      \item Distance $d$ code: corrects $\lfloor \frac{d-1}{2} \rfloor$ errors
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Our Approach: Assuming Optimal Decoder}
+  \textbf{Key Assumption:} We assume an \textit{optimal decoder}
+
+  \vspace{1em}
+
+  \textbf{What does optimal mean?}
+  \begin{itemize}
+    \item Decoder uses detector syndromes to infer which errors occurred
+    \item \textbf{Optimal decoder:} Always chooses the minimum-weight
+      error pattern consistent with the syndrome
+  \end{itemize}
+
+  \vspace{1em}
+
+  \textbf{For linear codes (like surface code):}
+  \begin{itemize}
+    \item If distance is $d$, then any two error patterns with $< d$
+      errors produce different syndromes OR same logical outcome
+    \item \textbf{Simplified verification:} Just check if errors with
+      \textit{zero syndrome} (no detectors fired) can corrupt the logical qubit!
   \end{itemize}
 \end{frame}
+
+\begin{frame}{Why Zero-Syndrome Check is Sufficient}
+  \textbf{Why not check all syndrome collisions?}
+
+  \vspace{1em}
+
+  \textbf{General problem:} Two different error patterns $E_1$ and
+  $E_2$ might produce the same syndrome but different logical outcomes
+  \begin{itemize}
+    \item This would fool the decoder!
+    \item Checking all pairs would be exponential
+  \end{itemize}
+
+  \vspace{1em}
+
+  \textbf{Our simplification (for linear codes):}
+  \begin{itemize}
+    \item Due to linearity: $E_1 \oplus E_2$ produces zero syndrome
+    \item If $E_1$ and $E_2$ differ in logical outcome, then $E_1
+      \oplus E_2$ is a zero-syndrome logical error
+    \item \textbf{So we only need to find zero-syndrome errors that
+      flip the logical!}
+  \end{itemize}
+
+  \vspace{0.5em}
+
+  \begin{block}{Result}
+    Distance $d$ = minimum weight of zero-syndrome logical error
+    $\Rightarrow$ can correct $\lfloor \frac{d-1}{2} \rfloor$ errors
+  \end{block}
+\end{frame}
+
+% \begin{frame}{What is the Surface Code?}
+%   \begin{itemize}
+%     \item One of the most promising quantum error correction codes
+%     \item Based on topological properties
+%     \item Qubits arranged in a 2D lattice
+%     \item Error correction performed through stabilizer measurements
+%     \item Widely studied and implemented in quantum computing platforms
+%   \end{itemize}
+% \end{frame}
 
 \section{Encoding}
 
-\begin{frame}{SAT Encoding Techniques}
+\begin{frame}{SAT Encoding: The Big Picture}
   \textbf{Goal:} Encode quantum error correction verification as a SAT problem
 
   \vspace{1em}
 
-  \textbf{Key Encodings:}
+  \textbf{What we need to encode:}
+  \begin{enumerate}
+    \item Each possible error mechanism: boolean variable $e_i$
+    \item Detector constraints: each detector measures XOR of certain errors
+    \item Observable constraints: logical qubits are corrupted by XOR of errors
+    \item Cardinality constraint: at most $k$ errors occur
+  \end{enumerate}
+
+  \vspace{0.5em}
+
+  \textbf{Challenge:} SAT solvers work with AND/OR/NOT, but quantum
+  error correction uses XOR extensively!
+\end{frame}
+
+\begin{frame}{The Input: Detector Error Model (DEM)}
+  \textbf{Input format:} Stim's DEM file describes error mechanisms
+
+  \vspace{1em}
+
+  \begin{block}{Example DEM Entries}
+    \texttt{error D0 D2 L0}
+
+    \texttt{error D1 D3}
+
+    \texttt{error D0 D1}
+  \end{block}
+
+  \vspace{1em}
+
+  \textbf{Interpretation:}
   \begin{itemize}
-    \item \textbf{Totalizer encoding} for cardinality constraints
-      \begin{itemize}
-        \item Efficiently encode constraints like ``at most $k$ errors occur''
-      \end{itemize}
-    \item \textbf{Tree encoding} for XOR constraints
-      \begin{itemize}
-        \item Handle parity checks efficiently
-      \end{itemize}
+    \item Each \texttt{error} line is one error mechanism
+    \item \texttt{D\#}: This error triggers detector \#
+    \item \texttt{L\#}: This error flips logical observable \#
+    \item Probability value is not used in SAT encoding
   \end{itemize}
+\end{frame}
+
+\begin{frame}{Encoding Step 1: Boolean Variables}
+  \textbf{Create one boolean variable per error mechanism}
+
+  \vspace{1em}
+
+  \begin{itemize}
+    \item Parse DEM file to count $n$ error mechanisms
+    \item Create variables: $e_1, e_2, \ldots, e_n$
+    \item $e_i = \text{True}$ means error $i$ occurs
+    \item $e_i = \text{False}$ means error $i$ does not occur
+  \end{itemize}
+
+  \vspace{1em}
+
+  \begin{block}{Example}
+    If DEM has 100 error lines, we create variables $e_1, \ldots, e_{100}$
+  \end{block}
+\end{frame}
+
+\begin{frame}{Encoding Step 2: XOR Constraints (The Hard Part)}
+  \textbf{Problem:} Detectors compute XOR, but SAT uses AND/OR/NOT
+
+  \vspace{1em}
+
+  \textbf{Example:} Detector D0 fires iff $e_1 \oplus e_3 \oplus e_7 = 1$
+
+  \vspace{0.5em}
+
+  For verification, we want detectors to NOT fire:
+  $$e_1 \oplus e_3 \oplus e_7 = 0$$
+
+  \vspace{1em}
+
+  \textbf{Solution: Tseitin Transformation}
+  \begin{itemize}
+    \item Introduce auxiliary variables
+    \item Convert XOR into CNF clauses using helper variables
+    \item Two methods: \textit{chain} and \textit{tree} encoding
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{XOR Encoding: Chain Method}
+  \textbf{Encode } $e_1 \oplus e_2 \oplus e_3 \oplus e_4 = 0$
+
+  \vspace{1em}
+
+  \textbf{Chain approach:}
+  \begin{enumerate}
+    \item Create auxiliary variable $a_1 = e_1 \oplus e_2$
+    \item Create auxiliary variable $a_2 = a_1 \oplus e_3$
+    \item Create auxiliary variable $a_3 = a_2 \oplus e_4$
+    \item Assert $a_3 = 0$
+  \end{enumerate}
+
+  \vspace{1em}
+
+  \textbf{Binary XOR encoding:} $c = a \oplus b$ becomes 4 CNF clauses:
+  \begin{itemize}
+    \item $\neg a \lor \neg b \lor \neg c$
+    \item $a \lor b \lor \neg c$
+    \item $a \lor \neg b \lor c$
+    \item $\neg a \lor b \lor c$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{XOR Encoding: Tree Method}
+  \textbf{Encode } $e_1 \oplus e_2 \oplus e_3 \oplus e_4 = 0$
+
+  \vspace{1em}
+
+  \textbf{Tree approach (more parallel):}
+  \begin{enumerate}
+    \item Level 1: $a_1 = e_1 \oplus e_2$, \quad $a_2 = e_3 \oplus e_4$
+    \item Level 2: $a_3 = a_1 \oplus a_2$
+    \item Assert $a_3 = 0$
+  \end{enumerate}
+
+  \vspace{1em}
+
+  \begin{block}{Trade-off}
+    \textbf{Chain:} Linear depth, can be slow for SAT propagation
+
+    \textbf{Tree:} Logarithmic depth, better propagation, more variables
+  \end{block}
+\end{frame}
+
+\begin{frame}{Encoding Step 3: Cardinality Constraints}
+  \textbf{Constraint:} At most $k$ errors occur
+
+  $$\sum_{i=1}^{n} e_i \leq k$$
+
+  \vspace{1em}
+
+  \textbf{Naive encoding:} Forbid all $(n \choose k+1)$ combinations
+  $\rightarrow$ exponential!
+
+  \vspace{0.5em}
+
+  \textbf{Totalizer encoding:} Efficient polynomial-size encoding
+  \begin{itemize}
+    \item Builds a circuit that counts the number of true variables
+    \item Uses auxiliary variables to represent partial sums
+    \item Results in $O(nk)$ clauses and variables
+    \item Provided by PySAT's \texttt{CardEnc.atmost}
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Encoding Step 4: Observable Constraints}
+  \textbf{Goal:} Find errors that corrupt the logical qubit
+
+  \vspace{1em}
+
+  \textbf{Constraint:} At least one logical observable is flipped
+
+  \vspace{0.5em}
+
+  \begin{enumerate}
+    \item For each observable $L_j$, encode: $r_j = \bigoplus_{i}
+      e_i$ where error $i$ affects $L_j$
+    \item Assert: $r_1 \lor r_2 \lor \cdots \lor r_m$ (at least one
+      observable flipped)
+  \end{enumerate}
+
+  \vspace{1em}
+
+  \begin{block}{Putting it Together}
+    \textbf{SAT:} There exist errors that bypass all detectors but
+    corrupt a logical qubit $\rightarrow$ \textcolor{red}{Bug found!}
+
+    \textbf{UNSAT:} No such errors exist $\rightarrow$ Code is
+    correct for $k$ errors
+  \end{block}
 \end{frame}
 
 \begin{frame}{Verification Strategy}
@@ -178,17 +453,14 @@
 
     \item \textbf{XOR encodings}
       \begin{itemize}
-        \item SAT solvers struggle with parity constraints
+        \item SAT solvers struggle with parity
+          constraints~\cite{urquhart1987hard}
       \end{itemize}
 
     \item \textbf{Cardinality constraints}
       \begin{itemize}
-        \item ``At most $k$ errors'' constraints are challenging
-      \end{itemize}
-
-    \item \textbf{Pigeonhole principle}
-      \begin{itemize}
-        \item Notoriously hard for SAT solvers
+        \item ``At most $k$ errors'', is similar to Pigeonhole
+          principle, constraints are challenging~\cite{haken1985intractability}
       \end{itemize}
   \end{enumerate}
 
@@ -245,6 +517,7 @@
     \normalsize{Questions?}
   \end{center}
 \end{frame}
-
+\bibliographystyle{plain}
+\bibliography{ref}
 \end{document}
 

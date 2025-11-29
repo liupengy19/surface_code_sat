@@ -8,4 +8,5 @@ dependencies = [
     "pycryptosat==5.11.21; sys_platform == 'linux'",
     "z3-solver>=4.15.3.0",
     "python-sat>=1.8.dev24",
+    "matplot>=0.1.9",
 ]
