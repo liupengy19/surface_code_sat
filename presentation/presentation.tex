@@ -439,6 +439,21 @@
   \end{center}
 \end{frame}
 
+\begin{frame}{Comparison of XOR Encoding Strategies}
+  \begin{enumerate}
+    \item \textbf{Chain Encoding}: sequentially combine variables using XOR
+    \item \textbf{Tree Encoding}: parallel, balanced reduction of XOR terms
+    \item \textbf{Base-2 Encoding}: use $c = a \oplus b$ as the atomic building block \\
+          \quad $\Rightarrow$ introduces more auxiliary variables but simpler constraints
+    \item \textbf{Base-3 Encoding}: use $d = a \oplus b \oplus c$ as the atomic block \\
+          \quad $\Rightarrow$ reduces auxiliary variables but increases clause complexity
+  \end{enumerate}
+  \begin{center}
+    \includegraphics[width=0.75\textwidth,height=0.42\textheight,keepaspectratio]{../perf_comparison.pdf}
+  \end{center}
+\end{frame}
+
+
 \begin{frame}{Why is This So Hard?}
   \textbf{Combination of SAT solver weaknesses:}
 
