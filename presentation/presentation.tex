@@ -7,6 +7,7 @@
 \usepackage{booktabs}
 \usepackage{tikz}
 \usepackage[table]{xcolor}
+\usepackage{graphicx}
 
 \title{Verifying Quantum Error Correction Codes with SAT Solvers}
 \subtitle{Finding Bugs in Surface Code Implementations}
@@ -300,7 +301,7 @@
 
   \vspace{1em}
 
-  \textbf{Naive encoding:} Forbid all $(n \choose k+1)$ combinations
+  \textbf{Naive encoding:} Forbid all $n \choose k+1$ combinations
   $\rightarrow$ exponential!
 
   \vspace{0.5em}
@@ -407,10 +408,10 @@
     \item Demonstrates effectiveness of SAT-based approach
   \end{itemize}
 
-  \vspace{1em}
+  \vspace{0.1em}
 
   \begin{center}
-    \textit{Runtime details: [Include specific timing results]}
+    \includegraphics[width=0.75\textwidth,height=0.5\textheight,keepaspectratio]{../perf_filtered_plot.pdf}
   \end{center}
 \end{frame}
 
@@ -426,17 +427,15 @@
 
   \textbf{Verification is very slow...}
 
-  \vspace{0.5em}
+  \vspace{0.3em}
 
   \begin{itemize}
     \item Proving correctness requires solving UNSAT problems
     \item Much harder than finding bugs (SAT problems)
   \end{itemize}
 
-  \vspace{1em}
-
   \begin{center}
-    \textit{Runtime details: }
+    \includegraphics[width=0.75\textwidth,height=0.42\textheight,keepaspectratio]{../perf_filtered_plot_unsat.pdf}
   \end{center}
 \end{frame}
 
