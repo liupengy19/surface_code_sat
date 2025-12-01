@@ -48,27 +48,23 @@
   \begin{itemize}
     \item \textcolor{red}{\textbf{Errors occur continuously during computation}}
     \item No-cloning theorem: cannot copy quantum states
-    \item Measurement collapses quantum states
-    \item Must use \textit{indirect measurements} through \textbf{stabilizers}
+    \item Measurement inevitably destroys quantum states
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Detectors: Measuring Errors Indirectly}
-  \textbf{Challenge:} Direct measurement destroys quantum states
-
-  \vspace{1em}
-
-  \textbf{Solution: Detectors (Stabilizer Measurements)}
   \begin{itemize}
-    \item Measure \textit{parity} (XOR) of multiple qubits
-    \item Detector fires when odd number of errors occur
-    \item Reveals error \textit{syndrome}, not the quantum state
+    \item Through measurements, we convert quantum states into classical bits.
+    \item A linear combination of measurements that is deterministic
+      under no error is a detector.
+    \item The decoder, which is a classical algorithm, rely on the
+      detectors to infer the error pattern.
   \end{itemize}
 
   \vspace{1em}
 
   \begin{block}{Key Idea}
-    Different error patterns $\rightarrow$ different syndromes
+    Different error patterns $\rightarrow$ different detectors
     $\rightarrow$ error correction possible
   \end{block}
 \end{frame}
@@ -80,10 +76,7 @@
   \vspace{1em}
 
   \begin{itemize}
-    \item Can it correct a certain number of errors?
     \item What is the maximum number of correctable errors?
-    \item Do different error patterns produce distinguishable
-      detector syndromes?
   \end{itemize}
 
   \vspace{1em}
@@ -94,7 +87,6 @@
     \begin{itemize}
       \item Distance 3 code: corrects 1 error
       \item Distance 5 code: corrects 2 errors
-      \item Distance $d$ code: corrects $\lfloor \frac{d-1}{2} \rfloor$ errors
     \end{itemize}
   \end{block}
 \end{frame}
@@ -106,29 +98,29 @@
 
   \textbf{What does optimal mean?}
   \begin{itemize}
-    \item Decoder uses detector syndromes to infer which errors occurred
+    \item Decoder uses detector detectors to infer which errors occurred
     \item \textbf{Optimal decoder:} Always chooses the minimum-weight
-      error pattern consistent with the syndrome
+      error pattern consistent with the detector
   \end{itemize}
 
   \vspace{1em}
 
-  \textbf{For linear codes (like surface code):}
+  \textbf{For linear codes:}
   \begin{itemize}
     \item If distance is $d$, then any two error patterns with $< d$
-      errors produce different syndromes OR same logical outcome
+      errors produce different detectors OR same logical outcome
     \item \textbf{Simplified verification:} Just check if errors with
-      \textit{zero syndrome} (no detectors fired) can corrupt the logical qubit!
+      \textit{zero detector} (no detectors fired) can corrupt the logical qubit!
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Why Zero-Syndrome Check is Sufficient}
-  \textbf{Why not check all syndrome collisions?}
+\begin{frame}{Why Zero-detector Check is Sufficient}
+  \textbf{Why not check all detector collisions?}
 
   \vspace{1em}
 
   \textbf{General problem:} Two different error patterns $E_1$ and
-  $E_2$ might produce the same syndrome but different logical outcomes
+  $E_2$ might produce the same detector but different logical outcomes
   \begin{itemize}
     \item This would fool the decoder!
     \item Checking all pairs would be exponential
@@ -138,17 +130,17 @@
 
   \textbf{Our simplification (for linear codes):}
   \begin{itemize}
-    \item Due to linearity: $E_1 \oplus E_2$ produces zero syndrome
+    \item Due to linearity: $E_1 \oplus E_2$ produces zero detector
     \item If $E_1$ and $E_2$ differ in logical outcome, then $E_1
-      \oplus E_2$ is a zero-syndrome logical error
-    \item \textbf{So we only need to find zero-syndrome errors that
+      \oplus E_2$ is a zero-detector logical error
+    \item \textbf{So we only need to find zero-detector errors that
       flip the logical!}
   \end{itemize}
 
   \vspace{0.5em}
 
   \begin{block}{Result}
-    Distance $d$ = minimum weight of zero-syndrome logical error
+    Distance $d$ = minimum weight of zero-detector logical error
     $\Rightarrow$ can correct $\lfloor \frac{d-1}{2} \rfloor$ errors
   \end{block}
 \end{frame}
@@ -311,7 +303,7 @@
     \item Builds a circuit that counts the number of true variables
     \item Uses auxiliary variables to represent partial sums
     \item Results in $O(nk)$ clauses and variables
-    \item Provided by PySAT's \texttt{CardEnc.atmost}
+    \item Provided by PySAT's totalizer encoding
   \end{itemize}
 \end{frame}
 
@@ -332,14 +324,6 @@
   \end{enumerate}
 
   \vspace{1em}
-
-  \begin{block}{Putting it Together}
-    \textbf{SAT:} There exist errors that bypass all detectors but
-    corrupt a logical qubit $\rightarrow$ \textcolor{red}{Bug found!}
-
-    \textbf{UNSAT:} No such errors exist $\rightarrow$ Code is
-    correct for $k$ errors
-  \end{block}
 \end{frame}
 
 \begin{frame}{Verification Strategy}
@@ -369,7 +353,7 @@
 
 \begin{frame}{Bug Discovery in Nature Paper}
   \textbf{Major Achievement:} We successfully identified and verified
-  a bug in a recently published Nature paper!
+  a bug in a recently published Nature paper~\cite{bluvstein2025fault}!
 
   \vspace{1em}
 
@@ -443,16 +427,19 @@
   \begin{enumerate}
     \item \textbf{Chain Encoding}: sequentially combine variables using XOR
     \item \textbf{Tree Encoding}: parallel, balanced reduction of XOR terms
-    \item \textbf{Base-2 Encoding}: use $c = a \oplus b$ as the atomic building block \\
-          \quad $\Rightarrow$ introduces more auxiliary variables but simpler constraints
-    \item \textbf{Base-3 Encoding}: use $d = a \oplus b \oplus c$ as the atomic block \\
-          \quad $\Rightarrow$ reduces auxiliary variables but increases clause complexity
+    \item \textbf{Base-2 Encoding}: use $c = a \oplus b$ as the
+      atomic building block \\
+      \quad $\Rightarrow$ introduces more auxiliary variables but
+      simpler constraints
+    \item \textbf{Base-3 Encoding}: use $d = a \oplus b \oplus c$ as
+      the atomic block \\
+      \quad $\Rightarrow$ reduces auxiliary variables but increases
+      clause complexity
   \end{enumerate}
   \begin{center}
     \includegraphics[width=0.75\textwidth,height=0.42\textheight,keepaspectratio]{../perf_comparison.pdf}
   \end{center}
 \end{frame}
-
 
 \begin{frame}{Why is This So Hard?}
   \textbf{Combination of SAT solver weaknesses:}
