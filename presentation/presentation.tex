@@ -92,9 +92,6 @@
 \end{frame}
 
 \begin{frame}{Our Approach: Assuming Optimal Decoder}
-  \textbf{Key Assumption:} We assume an \textit{optimal decoder}
-
-  \vspace{1em}
 
   \textbf{What does optimal mean?}
   \begin{itemize}
@@ -115,8 +112,6 @@
 \end{frame}
 
 \begin{frame}{Why Zero-detector Check is Sufficient}
-  \textbf{Why not check all detector collisions?}
-
   \vspace{1em}
 
   \textbf{General problem:} Two different error patterns $E_1$ and
@@ -196,7 +191,6 @@
     \item Each \texttt{error} line is one error mechanism
     \item \texttt{D\#}: This error triggers detector \#
     \item \texttt{L\#}: This error flips logical observable \#
-    \item Probability value is not used in SAT encoding
   \end{itemize}
 \end{frame}
 
@@ -303,7 +297,7 @@
     \item Builds a circuit that counts the number of true variables
     \item Uses auxiliary variables to represent partial sums
     \item Results in $O(nk)$ clauses and variables
-    \item Provided by PySAT's totalizer encoding
+    \item Provided by PySAT
   \end{itemize}
 \end{frame}
 
@@ -461,7 +455,7 @@
     \item \textbf{Cardinality constraints}
       \begin{itemize}
         \item ``At most $k$ errors'', is similar to Pigeonhole
-          principle, constraints are challenging~\cite{haken1985intractability}
+          principle, which is challenging~\cite{haken1985intractability}
       \end{itemize}
   \end{enumerate}
 
@@ -496,7 +490,6 @@
 
   \vspace{1em}
   \centering
-  \textbf{Combine SAT and Lean for comprehensive verification!}
 \end{frame}
 
 \begin{frame}{Summary}
@@ -504,7 +497,7 @@
     \item \textbf{Problem:} Verifying quantum error correction codes
     \item \textbf{Approach:} SAT solver with specialized encodings
     \item \textbf{Success:} Found bugs in published Nature paper
-    \item \textbf{Challenge:} Verifying fixes is computationally hard
+    \item \textbf{Challenge:} Verifying fixes is hard
     \item \textbf{Future:} Hybrid SAT + Lean approach
   \end{itemize}
 

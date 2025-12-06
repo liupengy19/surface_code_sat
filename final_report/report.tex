@@ -1,0 +1,452 @@
+\documentclass[a4paper,UKenglish,cleveref, autoref, thm-restate]{lipics-v2021}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage[table]{xcolor}
+
+\bibliographystyle{plainurl}
+
+% Code listing settings - more compact
+\lstset{
+  language=Python,
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  stringstyle=\color{red},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  numbersep=3pt,
+  breaklines=true,
+  frame=single,
+  captionpos=b,
+  aboveskip=5pt,
+  belowskip=5pt
+}
+
+\title{Verifying Quantum Error Correction Codes with SAT Solvers}
+
+\author{Pengyu Liu}{Carnegie Mellon University, USA}{pengyul@andrew.cmu.edu}{}{}
+
+\author{Mengdi Wu}{Carnegie Mellon University, USA}{mengdiwu@andrew.cmu.edu}{}{}
+
+\authorrunning{P. Liu and M. Wu}
+
+\Copyright{Pengyu Liu and Mengdi Wu}
+
+\ccsdesc[500]{Theory of computation~Constraint and logic programming}
+\ccsdesc[300]{Hardware~Quantum error correction and fault tolerance}
+
+\keywords{SAT solver, quantum error correction, surface code, formal
+verification}
+\newcommand{\pengyu}[1]{\textcolor{blue}{Pengyu:#1}}
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  Quantum error correction is essential for executing quantum
+  algorithms under realistic noise. However, verifying the
+  correctness of quantum
+  error correction code implementations remains challenging due to
+  the exponential size of the possible error patterns. In this paper,
+  we present a SAT-based
+  approach to formally verify quantum error correction codes by
+  encoding the verification problem as a SAT problem. We apply our
+  method to analyze surface code
+  implementations and successfully identify bugs in a recently
+  published paper, where codes claimed to correct $k$ errors
+  actually fail to do so for larger distances. Our approach
+  demonstrates that SAT solvers can efficiently find counterexamples
+  (bugs) in quantum error correction implementations, though
+  verifying correctness (proving no bugs exist) remains
+  computationally challenging due to the inherent difficulty of UNSAT
+  problems combined with XOR constraints.
+\end{abstract}
+
+\section{Introduction}
+
+Quantum computing promises to solve certain problems exponentially
+faster than classical computers, with potential applications ranging from
+quantum chemistry~\cite{babbush2015chemical},
+cryptography~\cite{shor1994algorithms}, and machine
+learning~\cite{zhang2016quantum}, to
+finance~\cite{orus2019quantum}. However, quantum systems are
+inherently fragile---quantum bits (qubits) are susceptible to errors
+from decoherence, environmental noise, and imperfect gate
+operations~\cite{gottesman2024surviving}.
+Unlike classical systems where errors mainly occur during data
+transmission or storage, quantum errors occur \textit{continuously
+during computation itself}, which intertwines quantum algorithms with
+quantum error correction, making the correctness of a
+code not only a static property but also a dynamic
+one~\cite{delfosse2023spacetime}.
+
+Quantum error correction (QEC) codes address this challenge by
+spreading logical information across multiple physical qubits, so
+that local errors can not affect the logical information easily.
+The \textit{distance} $d$ of a code determines its error-correcting
+capability: a distance-$d$ code can correct up to $\lfloor \frac{d-1}{2}
+\rfloor$ errors. Verifying that a code implementation achieves its
+claimed distance is crucial for ensuring fault tolerance, but
+exhaustively testing all possible error combinations is computationally
+infeasible for practical code sizes.
+
+There are previous works using SMT solvers to verify the correctness
+of quantum error correction codes, but their speed is not
+satisfactory, for example, it takes 70 hours to verify a distance-7
+code~\cite{chen2025verifying}.
+
+\subsection{Contributions}
+
+In this paper, we make the following contributions:
+\begin{enumerate}
+  \item We formulate quantum error correction verification as a SAT
+    problem, enabling the use of highly optimized SAT solvers.
+  \item We develop efficient encodings for XOR constraints arising
+    from detector definitions using Tseitin transformation with both
+    chain and tree structures.
+  \item We apply our method to verify surface code implementations
+    and discover bugs in a recently published Nature
+    paper~\cite{bluvstein2025fault}, where codes claimed to achieve
+    certain distances actually fail.
+  \item We analyze the performance characteristics of our approach,
+    identifying the computational challenges that make verification
+    (UNSAT problems) significantly harder than bug-finding (SAT problems).
+\end{enumerate}
+
+\section{Background}
+
+\subsection{Quantum Computing Basics}
+
+A \textit{qubit} (quantum bit) is the fundamental unit of quantum
+information. Unlike a classical bit that exists in state 0 or 1, a
+qubit can exist in a \textit{superposition} $\alpha|0\rangle +
+\beta|1\rangle$, where $\alpha$ and $\beta$ are complex amplitudes
+satisfying $|\alpha|^2 + |\beta|^2 = 1$~\cite{nielsen2010quantum}.
+When measured, the qubit collapses to $|0\rangle$ with probability
+$|\alpha|^2$ or $|1\rangle$ with probability $|\beta|^2$.
+
+\subsection{The Surface Code}
+
+The surface code~\cite{fowler2012surface, dennis2002topological} is
+one of the most promising quantum error correction codes due to: (1)
+local nearest-neighbor interactions compatible with many hardware
+platforms, (2) high error threshold ($\sim 1\%$), and (3) easy
+decoding. There are already many experimental demonstrations of the
+surface code, including superconducting
+qubits~\cite{google2025quantum} and neutral atoms~\cite{bluvstein2025fault}.
+
+\subsection{Stabilizer Formalism}
+
+The stabilizer formalism~\cite{gottesman1997stabilizer} enables error
+detection without measuring the encoded quantum state directly. A
+stabilizer code is defined by a set of commuting $n$-qubit Pauli
+operators $\mathcal{S} = \{S_1, S_2, \ldots, S_m\}$. Valid codewords
+$|\psi\rangle$ satisfy $S_i|\psi\rangle = |\psi\rangle$ for all $S_i
+\in \mathcal{S}$.
+
+When an error $E$ (a Pauli operator) occurs, the corrupted state
+$E|\psi\rangle$ may no longer be a $+1$ eigenstate of all stabilizers.
+The syndrome is determined by the commutation relations: measuring
+$S_i$ yields $+1$ if $[E, S_i] = 0$ (commute), and $-1$ if $\{E, S_i\}
+= 0$ (anti-commute). Mathematically, if we define syndrome bit $s_i
+\in \{0, 1\}$ where $S_i E = (-1)^{s_i} E S_i$, then the syndrome
+vector $\mathbf{s} = (s_1, \ldots, s_m)$ can be used to determine the error.
+
+A quantum code with parameters $[[n, k, d]]$ uses $n$ physical qubits
+to encode $k$ logical qubits with distance $d$, meaning any error
+affecting fewer than $d$ qubits produces a non-trivial syndrome and
+can be detected.
+
+\subsection{Detectors and Decoders}
+
+A \textit{detector} is a linear combination of measurement outcomes
+that is deterministic in the absence
+of errors. When errors occur, detectors may produce
+unexpected values, providing classical information about which errors
+likely occurred.
+
+The \textit{decoder} is a classical algorithm that uses detector
+information to infer the error pattern and apply corrections.
+
+\subsection{Detector Error Model (DEM)}
+
+We use Stim's Detector Error Model (DEM) format~\cite{gidney2021stim}
+to represent error mechanisms and their effects. A DEM file describes
+each error mechanism with its probability, affected detectors (D\#),
+and affected logical observables (L\#). Example: \texttt{error(0.027)
+D0 D1} triggers detectors D0 and D1 with probability 0.027;
+\texttt{error(0.101) D0 L0}
+triggers D0 and flips logical observable L0 with probability 0.101.
+Here, we only focus on the number of errors that error and will
+ignore the probability.
+
+\subsection{Zero-Detector Verification}
+
+Most quantum error correction codes are \textit{linear codes}: if
+error patterns $E_1$ and $E_2$ each produce syndromes $\mathbf{s}_1$
+and $\mathbf{s}_2$, then $E_1 \oplus E_2$ produces syndrome
+$\mathbf{s}_1 \oplus \mathbf{s}_2$. This linearity has an important
+consequence for code verification.
+
+A \textit{zero-detector logical error} is an error pattern that
+triggers no detectors (zero syndrome) but flips at least one logical
+observable. Such errors are undetectable and cause logical failures.
+Due to linearity, if $E_1$ and $E_2$ produce the same syndrome
+$\mathbf{s}_1 = \mathbf{s}_2$ but different logical outcomes, then
+$E_1 \oplus E_2$ triggers no detectors yet flips a logical
+observable---a zero-detector logical error.
+
+The \textit{code distance} $d$ is defined as the minimum weight of any
+zero-detector logical error:
+\[
+  d = \min\{|E| : E \text{ triggers no detectors and flips a logical
+  observable}\}
+\]
+A code with distance $d$ can reliably correct up to $t =
+\lfloor(d-1)/2\rfloor$ errors. This is because any two correctable
+error patterns $E_1$ and $E_2$ with $|E_1|, |E_2| \leq t$ must have
+distinct syndromes; otherwise $E_1 \oplus E_2$ would be a zero-detector
+logical error with weight at most $2t < d$, contradicting the
+definition of distance.
+
+\section{SAT Encoding Methodology}
+
+Given $n$ error mechanisms, $m$ detectors, and $\ell$ logical
+observables, we create boolean variable $e_i$ for each error
+mechanism and add following constraints:
+\begin{enumerate}
+  \item \textit{Detector}: $\bigoplus_{i
+    \in \text{affects}(D_j)} e_i = 0$ for each detector;
+  \item \textit{Observable}: $\bigvee_{k} (\bigoplus_{i \in
+    \text{affects}(L_k)} e_i = 1)$;
+  \item \textit{Cardinality}: $\sum_i e_i \leq k$.
+\end{enumerate}
+If the SAT solver finds a solution, it is an undetectable logical error with
+$\leq k$ errors.
+
+\subsection{XOR Encoding with Tseitin Transformation}
+
+XOR constraints must be converted to CNF using Tseitin
+transformation. For a base-$b$ XOR gate $c = e_1 \oplus e_2 \oplus
+\cdots \oplus e_b$, we enumerate all $2^b$ input combinations and
+generate $2^{b-1}$ clauses enforcing $c = 1$ when an odd number of
+inputs are true. For the simplest case $b = 2$, the constraint $c = a
+\oplus b$ requires 4 clauses: $(\neg a \lor \neg b \lor \neg c) \land
+(a \lor b \lor \neg c) \land (a \lor \neg b \lor c) \land (\neg a \lor
+b \lor c)$.
+
+To encode $e_1 \oplus \cdots \oplus e_n = 0$, we recursively decompose
+it using base-$b$ XOR gates as building blocks:
+
+\textbf{Chain Structure}: Introduce auxiliary variables sequentially:
+$a_1 = e_1 \oplus \cdots \oplus e_b$, $a_2 = a_1 \oplus e_{b+1} \oplus
+\cdots \oplus e_{2b-1}$, etc. This produces a linear chain with depth
+$O(n/b)$.
+
+\textbf{Tree Structure}: Reduce XORs in a balanced tree: first compute
+$a_i = e_{(i-1)b+1} \oplus \cdots \oplus e_{ib}$ for each group of $b$
+variables, then recursively combine $a_i$'s using the same method.
+This achieves depth $O(\log_b n)$ for better unit propagation.
+
+Higher base values reduce the number of auxiliary variables but
+increase clause complexity exponentially ($2^{b-1}$ clauses per gate).
+We experiment with $b \in \{2, 3, 4\}$ to find the optimal
+trade-off.
+
+\subsection{Cardinality Constraints}
+
+To encode ``at most $k$ of $n$ variables are true,'' the naive
+approach adds a clause for each $(k+1)$-subset, yielding
+$\binom{n}{k+1}$ clauses---exponential in $k$.
+
+We use the \textit{totalizer encoding}~\cite{bailleux2003efficient},
+which constructs a unary counting circuit via a binary tree. Each leaf
+represents an input variable $e_i$. Each internal node merges two
+sorted unary counters from its children: if the left child outputs
+$(l_1, \ldots, l_a)$ and the right outputs $(r_1, \ldots, r_b)$, the
+merged output $(o_1, \ldots, o_{a+b})$ satisfies $o_i = 1$ iff at least
+$i$ inputs below are true. The merge operation uses clauses of the
+form $l_i \land r_j \Rightarrow o_{i+j}$. At the root, we enforce $o_{k+1}
+= 0$ to guarantee at most $k$ variables are true. This encoding
+requires $O(n \log n)$ auxiliary variables and $O(nk)$ clauses, and
+provides strong unit propagation.
+
+\section{Evaluation}
+
+Our implementation uses Python with PySAT and
+CaDiCaL~\cite{BiereFallerFazekasFleuryFroleyks-CAV24}, a
+state-of-the-art CDCL solver. We use Stim~\cite{gidney2021stim} to
+generate detector error models from quantum circuits.
+Table~\ref{tab:problem_sizes} shows the problem scales for different
+code distances.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Problem sizes for different code distances}
+  \label{tab:problem_sizes}
+  \begin{tabular}{cccc}
+    \toprule
+    \textbf{Dist.} & \textbf{Errors} & \textbf{Detectors} & \textbf{CNF Vars} \\
+    \midrule
+    % TODO: fill in data
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Bug Discovery in Nature Paper}
+
+We applied our method to surface code implementations from a Nature
+paper~\cite{bluvstein2025fault}, where they claimed they implemented
+a variant of the surface code. Which can correct $\frac{d-3}{2}$
+errors for distance $d$.
+
+Table~\ref{tab:results} shows our
+findings: \textbf{distances 11 and 13 fail to correct claimed
+errors}. The distance-11 code corrects only 3 errors (not 4), and
+distance-13 corrects only 4 (not 5).
+
+\begin{table}[htbp]
+  \centering
+  \caption{Verification Results: Claimed vs Actual Correctable Errors}
+  \label{tab:results}
+  \begin{tabular}{ccc}
+    \toprule
+    \textbf{Distance} & \textbf{Actual} & \textbf{Claimed} \\
+    \midrule
+    3  & 0 & 0 \\
+    5  & 1 & 1 \\
+    7  & 2 & 2 \\
+    9  & 3 & 3 \\
+    \rowcolor{red!20}
+    11 & \textbf{3} & 4 \\
+    \rowcolor{red!20}
+    13 & \textbf{4} & 5 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Our SAT solver found explicit counterexamples---error patterns
+triggering no detectors but flipping the logical observable. For
+distance-11, an 8-error pattern (vs.\ expected 10) demonstrates a
+``shortcut'' through the code. These counterexamples provide valuable
+debugging information, identifying exactly which error mechanisms
+combine to defeat error correction.
+\pengyu{TODO: add counterexamples}
+
+\subsection{Performance Analysis}
+
+Figure~\ref{fig:sat_perf} and~\ref{fig:unsat_perf} compare SAT
+(bug-finding) vs UNSAT (verification) performance. Finding
+counterexamples is fast; proving correctness grows rapidly with problem size.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\columnwidth]{../perf_filtered_plot.pdf}
+  \caption{SAT performance: Finding bugs is fast}
+  \label{fig:sat_perf}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\columnwidth]{../perf_filtered_plot_unsat.pdf}
+  \caption{UNSAT performance: Verification is slow}
+  \label{fig:unsat_perf}
+\end{figure}
+
+Figure~\ref{fig:xor_comparison} compares XOR encoding strategies
+(chain vs tree, base-2 vs base-3). Tree-based encodings provide
+better propagation.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.85\columnwidth]{../perf_comparison.pdf}
+  \caption{Comparison of XOR encoding strategies}
+  \label{fig:xor_comparison}
+\end{figure}
+
+Table~\ref{tab:timing} shows timing results. Build time scales
+polynomially; SAT solve remains fast; UNSAT grows dramatically
+(distance-13 times out after 10 min).
+
+\begin{table}[htbp]
+  \centering
+  \caption{Verification timing (seconds)}
+  \label{tab:timing}
+  \begin{tabular}{ccccc}
+    \toprule
+    \textbf{Dist.} & \textbf{Err} & \textbf{Result} & \textbf{Build}
+    & \textbf{Solve} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+\subsection{Results using other solvers}
+\subsubsection{Results using CryptoMiniSat}
+\subsubsection{Results using Z3}
+\subsubsection{Results using MAXSAT}
+\section{Challenges and Limitations}
+We found that verification is significantly harder than bug-finding.
+We believe the following factors are the reasons:
+
+\textbf{UNSAT Problem Difficulty}: Verification requires proving
+UNSAT---that no satisfying assignment exists. This is inherently
+harder than finding satisfying assignments because the solver must
+exhaustively rule out all possibilities. While SAT problems can often
+be solved quickly by finding a single witness, UNSAT proofs require
+exploring (and pruning) the entire search space.
+
+\textbf{XOR Constraints}: SAT solvers are known to struggle with
+parity constraints~\cite{urquhart1987hard}. Our XOR constraints,
+while encoded into CNF via Tseitin transformation, retain their
+underlying parity structure that causes difficulty for
+resolution-based proof systems. The inability of resolution to
+efficiently handle XOR is a fundamental limitation.
+
+\textbf{Cardinality Constraints}: The ``at most $k$ errors''
+constraint resembles the pigeonhole principle, which is known to
+require exponentially long resolution
+proofs~\cite{haken1985intractability}. Combined with XOR constraints,
+this creates a particularly challenging problem structure.
+
+Together, these factors make verification substantially harder than
+bug-finding, explaining the dramatic performance gap observed in our
+experiments.
+
+\section{Related Work}
+
+\subsection{Quantum Error Correction Verification}
+
+\subsection{SAT-Based Verification}
+
+\pengyu{TODO: add related work}
+
+\section{Conclusion and Future Work}
+
+We presented a SAT-based approach to verifying quantum error
+correction codes, encoding the verification problem as boolean
+satisfiability with XOR constraints for detectors, cardinality
+constraints for error bounds, and disjunctive constraints for logical
+observables. Our method discovered bugs in a published Nature paper's
+surface code implementation, where distance-11 and distance-13 codes
+fail to achieve claimed error correction capability.
+
+Our experiments reveal a fundamental challenge: SAT solvers
+efficiently find counterexamples in faulty implementations, but
+proving correctness (UNSAT) is significantly harder due to the
+combination of XOR constraints, cardinality constraints, and the need
+to exhaustively rule out all possibilities.
+
+For future work, we propose a hybrid SAT + theorem prover approach.
+SAT solvers excel at bug-finding and search space pruning, while
+theorem provers (e.g., Lean) provide formal correctness guarantees. A
+hybrid approach could use SAT for rapid counterexample detection and
+pruning, then employ theorem provers to formally verify correctness.
+
+\bibliography{report}
+
+\end{document}
+
