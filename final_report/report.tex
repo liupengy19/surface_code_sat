@@ -293,7 +293,12 @@ code distances.
     \toprule
     \textbf{Dist.} & \textbf{Errors} & \textbf{Detectors} & \textbf{CNF Vars} \\
     \midrule
-    % TODO: fill in data
+    3 & 1 & 16 & 438 \\
+    5 & 3 & 72 & 3,392 \\
+    7 & 4 & 192 & 11,824 \\
+    9 & 6 & 400 & 29,058 \\
+    11 & 7 & 720 & 58,704 \\
+    13 & 9 & 1,176 & 104,856 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -388,6 +393,7 @@ polynomially; SAT solve remains fast; UNSAT grows dramatically
 \subsubsection{Results using CryptoMiniSat}
 \subsubsection{Results using Z3}
 \subsubsection{Results using MAXSAT}
+
 \section{Challenges and Limitations}
 We found that verification is significantly harder than bug-finding.
 We believe the following factors are the reasons:
@@ -415,6 +421,22 @@ this creates a particularly challenging problem structure.
 Together, these factors make verification substantially harder than
 bug-finding, explaining the dramatic performance gap observed in our
 experiments.
+
+\subsection{A Proof Complexity Perspective}
+
+It is well known that resolution is intractable for the pigeonhole principle: any resolution refutation of $\text{PHP}_{n+1}^n$ has size $2^{\Omega(n)}$~\cite{haken1985intractability}. This classical lower bound serves as a canonical benchmark for reasoning about counting constraints in CNF.
+
+A closely related structure arises in our setting. Consider variables $x_1,\ldots,x_{n+1}$ and the contradictory formula
+\[
+  \bigwedge_{i=1}^{n+1} x_i
+  \;\land\;
+  \sum_{i=1}^{n+1} x_i \le k.
+\]
+This type of constraint appears naturally in surface-code satisfiability instances and captures a simple form of global counting inconsistency. The proof complexity of the resulting CNF depends on the particular encoding of the cardinality constraint into clauses.
+
+Under the \emph{pigeonhole encoding} of cardinality constraints~\cite{WARNERS199863}, the formula above contains, as a projection, an instance of the pigeonhole principle. Consequently, every resolution refutation of this encoding has exponential size, by an immediate reduction to the lower bound of~\cite{haken1985intractability}.
+
+The situation for other standard encodings—such as totalizer, sorting-network, or binary-adder encodings—is less well understood. Existing lower bounds do not directly apply, and it remains open whether these alternative encodings also admit exponential resolution lower bounds or whether some of them may yield polynomial-size refutations. Establishing the precise proof complexity of these cardinality encodings is an interesting direction for further investigation.
 
 \section{Related Work}
 
