@@ -432,11 +432,11 @@ A closely related structure arises in our setting. Consider variables $x_1,\ldot
   \;\land\;
   \sum_{i=1}^{n+1} x_i \le k.
 \]
-This type of constraint appears naturally in surface-code satisfiability instances and captures a simple form of global counting inconsistency. The proof complexity of the resulting CNF depends on the particular encoding of the cardinality constraint into clauses.
+This formula is an instance of the surface code problem when all detectors only detect two errors, and captures a simple form of global counting inconsistency. The proof complexity of the resulting CNF depends on the particular encoding of the cardinality constraint into clauses.
 
 Under the \emph{pigeonhole encoding} of cardinality constraints~\cite{WARNERS199863}, the formula above contains, as a projection, an instance of the pigeonhole principle. Consequently, every resolution refutation of this encoding has exponential size, by an immediate reduction to the lower bound of~\cite{haken1985intractability}.
 
-The situation for other standard encodings—such as totalizer, sorting-network, or binary-adder encodings—is less well understood. Existing lower bounds do not directly apply, and it remains open whether these alternative encodings also admit exponential resolution lower bounds or whether some of them may yield polynomial-size refutations. Establishing the precise proof complexity of these cardinality encodings is an interesting direction for further investigation.
+The situation for other standard encodings (such as totalizer, sorting-network, or binary-adder encodings) is less well understood. Existing lower bounds do not directly apply, and it remains open whether these alternative encodings also admit exponential resolution lower bounds or whether some of them may yield polynomial-size refutations. Establishing the precise proof complexity of these cardinality encodings is an interesting direction for further investigation.
 
 \section{Related Work}
 
