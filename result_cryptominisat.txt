@@ -1,0 +1,48 @@
+--------------------------------
+Testing distance 3 with bias 2 errors
+num vars: 539
+Build time: 0.005344867706298828 seconds
+Check time: 0.0010449886322021484 seconds
+A code with distance 3 can tolerate 2 loss errors
+--------------------------------
+Testing distance 3 with bias 3 errors
+num vars: 539
+Build time: 0.0031332969665527344 seconds
+Check time: 0.00018835067749023438 seconds
+A code with distance 3 can't tolerate 3 loss errors
+--------------------------------
+Testing distance 5 with bias 4 errors
+num vars: 3691
+Build time: 0.05978965759277344 seconds
+Check time: 0.6902995109558105 seconds
+A code with distance 5 can tolerate 4 loss errors
+--------------------------------
+Testing distance 5 with bias 5 errors
+num vars: 3691
+Build time: 0.0585174560546875 seconds
+Check time: 0.0025320053100585938 seconds
+A code with distance 5 can't tolerate 5 loss errors
+--------------------------------
+Testing distance 7 with bias 6 errors
+num vars: 12175
+Build time: 0.4802219867706299 seconds
+Check time: 75.84238934516907 seconds
+A code with distance 7 can tolerate 6 loss errors
+--------------------------------
+Testing distance 7 with bias 7 errors
+num vars: 12175
+Build time: 0.4418621063232422 seconds
+Check time: 0.010998725891113281 seconds
+A code with distance 7 can't tolerate 7 loss errors
+--------------------------------
+Testing distance 9 with bias 8 errors
+num vars: 29197
+Build time: 2.2290780544281006 seconds
+Check time: 12340.949810504913 seconds
+A code with distance 9 can tolerate 8 loss errors
+--------------------------------
+Testing distance 9 with bias 9 errors
+num vars: 29197
+Build time: 2.2953813076019287 seconds
+Check time: 0.04284238815307617 seconds
+A code with distance 9 can't tolerate 9 loss errors

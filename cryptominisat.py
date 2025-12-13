@@ -74,7 +74,7 @@ def get_dem_path(distance: int) -> str:
 if __name__ == "__main__":
     import time
 
-    for distance in [3, 5, 7, 9, 11]:
+    for distance in [3, 5, 7, 9]:
         for bias in [1, 0]:
             print("--------------------------------")
             print(f"Testing distance {distance} with bias {distance - bias} errors")

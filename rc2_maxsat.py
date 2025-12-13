@@ -82,7 +82,7 @@ def get_dem_path(distance: int) -> str:
 if __name__ == "__main__":
     import time
 
-    for distance in [3, 5, 7, 9, 11]:
+    for distance in [3, 5, 7, 9]:
         print("=" * 60)
         print(f"Testing distance {distance}")
         dem_path = get_dem_path(distance)

@@ -442,110 +442,156 @@ potential to leverage SMT reasoning for better performance.
 Throughout this subsection, we use the ``correct'' implementation of
 the surface code and base-2 chain XOR encoding when applicable.
 \subsubsection{Results using CaDiCaL}
-\Cref{tab:cadical_results} shows the results using CaDiCaL. CaDiCaL
-is able to solve the UNSAT problem up to distance 9 but fails to
-solve the UNSAT problem at distance 11. This is already the best
-performance among all solvers. The build time shows how long it takes
-to build the model, which only grows polynomially with the number of variables.
-\begin{table}[h]
+\Cref{fig:cadical} shows the results using CaDiCaL. CaDiCaL
+is able to solve the UNSAT problem up to distance 13 but fails to
+solve the UNSAT problem at distance 15. This is already the best
+performance among all solvers.
+\begin{figure}[h]
   \centering
-  \caption{Results using CaDiCaL}
-  \label{tab:cadical_results}
-  \begin{tabular}{cccccc}
-    \toprule
-    \textbf{Distance} & \textbf{Errors} & \textbf{Result} & \textbf{Num vars} &
-    \textbf{Build Time} & \textbf{Solve Time} \\
-    \midrule
-    3 & 2 & UNSAT & 679 & 0.002 & 0.0001 \\
-    3 & 3 & SAT & 679 & 0.002 & 0.0002 \\
-    5 & 4 & UNSAT & 4479 & 0.063 & 0.024 \\
-    5 & 5 & SAT & 4479 & 0.066 & 0.011 \\
-    7 & 6 & UNSAT & 14461 & 0.218 & 1.623 \\
-    7 & 7 & SAT & 14461 & 0.213 & 0.119 \\
-    9 & 8 & UNSAT & 34160 & 0.986 &  72.82 \\
-    9 & 9 & SAT & 34160 & 0.991 & 1.067 \\
-    11 & 10 & UNSAT & 67004 & 4.748 & >3600 \\
-    11 & 11 & SAT & 67004 & 4.748 & 0.007 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+  \includegraphics[width=0.8\textwidth]{../perf_filtered_plot.pdf}
+  \caption{Check Time vs Distance for CaDiCaL}
+  \label{fig:cadical}
+\end{figure}
+% \begin{table}[h]
+%   \centering
+%   \caption{Results using CaDiCaL}
+%   \label{tab:cadical_results}
+%   \begin{tabular}{cccccc}
+%     \toprule
+%     \textbf{Distance} & \textbf{Errors} & \textbf{Result} & \textbf{Num vars} &
+%     \textbf{Build Time} & \textbf{Solve Time} \\
+%     \midrule
+%     3 & 2 & UNSAT & 679 & 0.002 & 0.0001 \\
+%     3 & 3 & SAT & 679 & 0.002 & 0.0002 \\
+%     5 & 4 & UNSAT & 4479 & 0.063 & 0.024 \\
+%     5 & 5 & SAT & 4479 & 0.066 & 0.011 \\
+%     7 & 6 & UNSAT & 14461 & 0.218 & 1.623 \\
+%     7 & 7 & SAT & 14461 & 0.213 & 0.119 \\
+%     9 & 8 & UNSAT & 34160 & 0.986 &  72.82 \\
+%     9 & 9 & SAT & 34160 & 0.991 & 1.067 \\
+%     11 & 10 & UNSAT & 67004 & 4.748 & >3600 \\
+%     11 & 11 & SAT & 67004 & 4.748 & 0.007 \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
 \subsubsection{Results using CryptoMiniSat}
-\Cref{tab:cryptominisat_results} shows the results using
+\Cref{fig:cryptominisat} shows the results using
 CryptoMiniSat~\cite{soos2016cryptominisat}. We use the native XOR
 encoding support of CryptoMiniSat instead of using the Tseitin transformation.
-CryptoMiniSat is able to solve the UNSAT problem up to distance 7
-but fails to solve the UNSAT problem at distance 9. We attribute this
+CryptoMiniSat is able to solve the UNSAT problem up to distance 9
+but fails to solve the UNSAT problem at distance 11. We attribute this
 to the fact that CryptoMiniSat is not optimized for cardinality constraints.
-\begin{table}[h]
+\begin{figure}[h]
   \centering
-  \caption{Results using CryptoMiniSat}
-  \label{tab:cryptominisat_results}
-  \begin{tabular}{cccccc}
-    \toprule
-    \textbf{Distance} & \textbf{Errors} & \textbf{Result}& \textbf{Num. vars} &
-    \textbf{Build Time} & \textbf{Solve Time} \\
-    \midrule
-    3 & 2 & UNSAT & 539 & 0.016 & 0.150 \\
-    3 & 3 & SAT & 539 & 0.012 &0.0003 \\
-    5 & 4 & UNSAT & 3691 & 0.063 & 272.9 \\
-    5 & 5 & SAT & 3691 & 0.066 & 0.0025 \\
-    7 & 6 & UNSAT & 12175 & 0.529 & 91.68 \\
-    7 & 7 & SAT & 12175 & 0.467 & 0.019 \\
-    9 & 8 & UNSAT & 29197 & 2.374 & >3600 \\
-    9 & 9 & SAT & 29197 & 2.554 & 0.059 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+  \includegraphics[width=0.8\textwidth]{../cryptominisat_perf.pdf}
+  \caption{Check Time vs Distance for CryptoMiniSat}
+  \label{fig:cryptominisat}
+\end{figure}
+% \begin{table}[h]
+%   \centering
+%   \caption{Results using CryptoMiniSat}
+%   \label{tab:cryptominisat_results}
+%   \begin{tabular}{cccccc}
+%     \toprule
+%     \textbf{Distance} & \textbf{Errors} & \textbf{Result}& \textbf{Num. vars} &
+%     \textbf{Build Time} & \textbf{Solve Time} \\
+%     \midrule
+%     3 & 2 & UNSAT & 539 & 0.016 & 0.150 \\
+%     3 & 3 & SAT & 539 & 0.012 &0.0003 \\
+%     5 & 4 & UNSAT & 3691 & 0.063 & 272.9 \\
+%     5 & 5 & SAT & 3691 & 0.066 & 0.0025 \\
+%     7 & 6 & UNSAT & 12175 & 0.529 & 91.68 \\
+%     7 & 7 & SAT & 12175 & 0.467 & 0.019 \\
+%     9 & 8 & UNSAT & 29197 & 2.374 & >3600 \\
+%     9 & 9 & SAT & 29197 & 2.554 & 0.059 \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
 \subsubsection{Results using Z3}
-\Cref{tab:z3_results} shows the results using Z3~\cite{de2008z3}.
+\Cref{fig:z3} shows the results using Z3~\cite{de2008z3}.
 We use the boolean theory, linear integer arithmetic and modular
 arithmetic theories.
 Z3
 is the worst among
-all solvers and can only solve the UNSAT problem up to distance 5.
-\begin{table}[h]
+all solvers and can only solve the UNSAT problem up to distance 7.
+\begin{figure}[h]
   \centering
-  \caption{Results using Z3}
-  \label{tab:z3_results}
-  \begin{tabular}{ccccc}
-    \toprule
-    \textbf{Distance} & \textbf{Errors} & \textbf{Result} &
-    \textbf{Build Time} & \textbf{Solve Time} \\
-    \midrule
-    3 & 2 & UNSAT & 0.016 & 0.150 \\
-    3 & 3 & SAT & 0.012 & 0.066 \\
-    5 & 4 & UNSAT & 0.063 & 272.9 \\
-    5 & 5 & SAT & 0.066 & 0.697 \\
-    7 & 6 & UNSAT & 0.187 & >3600 \\
-    7 & 7 & SAT & 0.006 & 0.007 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+  \includegraphics[width=0.8\textwidth]{../z3_perf.pdf}
+  \caption{Check Time vs Distance for Z3}
+  \label{fig:z3}
+\end{figure}
+% \begin{table}[h]
+%   \centering
+%   \caption{Results using Z3}
+%   \label{tab:z3_results}
+%   \begin{tabular}{ccccc}
+%     \toprule
+%     \textbf{Distance} & \textbf{Errors} & \textbf{Result} &
+%     \textbf{Build Time} & \textbf{Solve Time} \\
+%     \midrule
+%     3 & 2 & UNSAT & 0.016 & 0.150 \\
+%     3 & 3 & SAT & 0.012 & 0.066 \\
+%     5 & 4 & UNSAT & 0.063 & 272.9 \\
+%     5 & 5 & SAT & 0.066 & 0.697 \\
+%     7 & 6 & UNSAT & 0.187 & >3600 \\
+%     7 & 7 & SAT & 0.006 & 0.007 \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
 \subsubsection{Results using MaxSAT(RC2)}
-\Cref{tab:maxsat_results} shows the results using
+\Cref{fig:maxsat} shows the results using
 MaxSAT(RC2)~\cite{ignatiev2019rc2}.
 In MaxSAT, we use the same XOR encoding, but instead of using
 cardinality constraints, we ask the solver to find the minimum number
 of errors that can trigger the logical observable.
 RC2 is comparable to CryptoMiniSat but has the advantage of not requiring any
 prior knowledge and can find the exact error-correcting capability in one shot.
-\begin{table}[h]
+\begin{figure}[h]
   \centering
-  \caption{Results using MaxSAT(RC2)}
-  \label{tab:maxsat_results}
-  \begin{tabular}{cccccc}
-    \toprule
-    \textbf{Distance}  & \textbf{Result} & \textbf{Num. hard clauses}
-    & \textbf{Num. soft clauses}
-    & \textbf{Build Time} & \textbf{Solve Time} \\
-    \midrule
-    3 & 3 & 506 & 74 & 0.001 & 0.002 \\
-    5 & 5 & 2758 & 382 & 0.002 & 0.321 \\
-    7 & 7 & 8034 & 1094 & 0.004 & 96.3 \\
-    9 & 9 & 17606 & 2378 & 0.010 & >3600 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+  \includegraphics[width=0.8\textwidth]{../maxsat_perf.pdf}
+  \caption{Check Time vs Distance for MaxSAT (RC2)}
+  \label{fig:maxsat}
+\end{figure}
+% \begin{table}[h]
+%   \centering
+%   \caption{Results using MaxSAT(RC2)}
+%   \label{tab:maxsat_results}
+%   \begin{tabular}{cccccc}
+%     \toprule
+%     \textbf{Distance}  & \textbf{Result} & \textbf{Num. hard clauses}
+%     & \textbf{Num. soft clauses}
+%     & \textbf{Build Time} & \textbf{Solve Time} \\
+%     \midrule
+%     3 & 3 & 506 & 74 & 0.001 & 0.002 \\
+%     5 & 5 & 2758 & 382 & 0.002 & 0.321 \\
+%     7 & 7 & 8034 & 1094 & 0.004 & 96.3 \\
+%     9 & 9 & 17606 & 2378 & 0.010 & >3600 \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+% See Figure~\ref{fig:cryptominisat}.
+% \begin{figure}[h]
+%   \centering
+%   \includegraphics[width=0.8\textwidth]{../cryptominisat_perf.pdf}
+%   \caption{Check Time vs Distance for CryptoMiniSat}
+%   \label{fig:cryptominisat}
+% \end{figure}
+% \subsubsection{Results using Z3}
+% See Figure~\ref{fig:z3}.
+% \begin{figure}[h]
+%   \centering
+%   \includegraphics[width=0.8\textwidth]{../z3_perf.pdf}
+%   \caption{Check Time vs Distance for Z3}
+%   \label{fig:z3}
+% \end{figure}
+% \subsubsection{Results using MAXSAT}
+% See Figure~\ref{fig:maxsat}.
+% \begin{figure}[h]
+%   \centering
+%   \includegraphics[width=0.8\textwidth]{../maxsat_perf.pdf}
+%   \caption{Check Time vs Distance for MaxSAT (RC2)}
+%   \label{fig:maxsat}
+% \end{figure}
 
 \section{Challenges and Limitations}
 Through our experiments, we found that verification is significantly
@@ -584,12 +630,11 @@ $2^{\Omega(n)}$~\cite{haken1985intractability}. This classical lower
 bound serves as a canonical benchmark for reasoning about counting
 constraints in CNF.
 
-A closely related structure arises in our setting. Consider variables
-$x_1,\ldots,x_{n+1}$ and the contradictory formula
+A closely related structure arises in our setting. Consider variables $x_1,\ldots,x_{n}$ and the contradictory formula
 \[
-  \bigwedge_{i=1}^{n+1} x_i
+  \bigwedge_{i=1}^{n} x_i
   \;\land\;
-  \sum_{i=1}^{n+1} x_i \le k.
+  \sum_{i=1}^{n} x_i \le k.
 \]
 This formula is an instance of the surface code problem when all
 detectors only detect two errors, and captures a simple form of
@@ -598,10 +643,8 @@ CNF depends on the particular encoding of the cardinality constraint
 into clauses.
 
 Under the \emph{pigeonhole encoding} of cardinality
-constraints~\cite{WARNERS199863}, the formula above contains, as a
-projection, an instance of the pigeonhole principle. Consequently,
-every resolution refutation of this encoding has exponential size, by
-an immediate reduction to the lower bound of~\cite{haken1985intractability}.
+constraints~\cite{WARNERS199863}, the resolution refutation of this encoding has exponential size, by
+an immediate reduction from the lower bound of~\cite{haken1985intractability}.
 
 The situation for other standard encodings (such as totalizer,
 sorting-network, or binary-adder encodings) is less well understood.

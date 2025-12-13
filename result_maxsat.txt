@@ -1,0 +1,34 @@
+============================================================
+Testing distance 3
+Total vars: 197
+Num hard clauses: 506
+Num soft clauses: 74
+Build time: 0.001 seconds
+Solve time: 0.004 seconds
+Minimum errors needed to cause logical failure: 3
+
+============================================================
+Testing distance 5
+Total vars: 1054
+Num hard clauses: 2758
+Num soft clauses: 382
+Build time: 0.005 seconds
+Solve time: 0.572 seconds
+Minimum errors needed to cause logical failure: 5
+
+============================================================
+Testing distance 7
+Total vars: 3055
+Num hard clauses: 8034
+Num soft clauses: 1094
+Build time: 0.012 seconds
+Solve time: 215.729 seconds
+Minimum errors needed to cause logical failure: 7
+
+============================================================
+Testing distance 9
+Total vars: 6680
+Num hard clauses: 17606
+Num soft clauses: 2378
+Build time: 0.026 seconds
+(not within 6 hours)
