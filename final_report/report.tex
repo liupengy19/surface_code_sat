@@ -37,8 +37,7 @@
 
 \Copyright{Pengyu Liu and Mengdi Wu}
 
-\ccsdesc[500]{Theory of computation~Constraint and logic programming}
-\ccsdesc[300]{Hardware~Quantum error correction and fault tolerance}
+\ccsdesc[500]{Theory of computation~Logic and verification}
 
 \keywords{SAT solver, quantum error correction, surface code, formal
 verification}
@@ -72,10 +71,10 @@ verification}
 Quantum computing promises to solve certain problems exponentially
 faster than classical computers, with potential applications ranging from
 quantum chemistry~\cite{babbush2015chemical},
-cryptography~\cite{shor1994algorithms}, and machine
+cryptography~\cite{shor1994algorithms}, machine
 learning~\cite{zhang2016quantum}, to
 finance~\cite{orus2019quantum}. However, quantum systems are
-inherently fragile---quantum bits (qubits) are susceptible to errors
+inherently fragile: quantum bits (qubits) are susceptible to errors
 from decoherence, environmental noise, and imperfect gate
 operations~\cite{gottesman2024surviving}.
 Unlike classical systems where errors mainly occur during data
@@ -86,8 +85,8 @@ code not only a static property but also a dynamic
 one~\cite{delfosse2023spacetime}.
 
 Quantum error correction (QEC) codes address this challenge by
-spreading logical information across multiple physical qubits, so
-that local errors can not affect the logical information easily.
+spreading logical information across multiple physical qubits,
+ensuring that local errors cannot easily affect the logical information.
 The \textit{distance} $d$ of a code determines its error-correcting
 capability: a distance-$d$ code can correct up to $\lfloor \frac{d-1}{2}
 \rfloor$ errors. Verifying that a code implementation achieves its
@@ -95,9 +94,9 @@ claimed distance is crucial for ensuring fault tolerance, but
 exhaustively testing all possible error combinations is computationally
 infeasible for practical code sizes.
 
-There are previous works using SMT solvers to verify the correctness
-of quantum error correction codes, but their speed is not
-satisfactory, for example, it takes 70 hours to verify a distance-7
+There is prior work using SMT solvers to verify the correctness
+of quantum error correction codes, but the performance is not
+satisfactory. For example, it takes 70 hours to verify a distance-7
 code~\cite{chen2025verifying}.
 
 \subsection{Contributions}
@@ -115,7 +114,7 @@ In this paper, we make the following contributions:
     certain distances actually fail.
   \item We analyze the performance characteristics of our approach,
     identifying the computational challenges that make verification
-    (UNSAT problems) significantly harder than bug-finding (SAT problems).
+    (UNSAT problems) significantly harder than bug finding (SAT problems).
 \end{enumerate}
 
 \section{Background}
@@ -130,15 +129,24 @@ satisfying $|\alpha|^2 + |\beta|^2 = 1$~\cite{nielsen2010quantum}.
 When measured, the qubit collapses to $|0\rangle$ with probability
 $|\alpha|^2$ or $|1\rangle$ with probability $|\beta|^2$.
 
+For $n$ qubits, the system state lives in a $2^n$-dimensional Hilbert
+space spanned by computational basis states $|x_1 x_2 \cdots
+x_n\rangle$ where each $x_i \in \{0, 1\}$. A general $n$-qubit state
+is $|\psi\rangle = \sum_{x \in \{0,1\}^n} \alpha_x |x\rangle$ with
+$\sum_x |\alpha_x|^2 = 1$. This exponential growth in state space
+makes quantum systems both powerful and fragile.
 \subsection{The Surface Code}
 
 The surface code~\cite{fowler2012surface, dennis2002topological} is
 one of the most promising quantum error correction codes due to: (1)
 local nearest-neighbor interactions compatible with many hardware
-platforms, (2) high error threshold ($\sim 1\%$), and (3) easy
-decoding. There are already many experimental demonstrations of the
-surface code, including superconducting
-qubits~\cite{google2025quantum} and neutral atoms~\cite{bluvstein2025fault}.
+platforms, (2) high error threshold ($\sim 1\%$, below which error
+correction becomes beneficial), and (3) efficient
+decoding via almost linear-time algorithms~\cite{higgott2022pymatching}
+that are also near optimal. The surface code has been successfully
+demonstrated on multiple experimental platforms, including
+superconducting qubits~\cite{google2025quantum} and neutral
+atoms~\cite{bluvstein2025fault}.
 
 \subsection{Stabilizer Formalism}
 
@@ -152,8 +160,8 @@ $|\psi\rangle$ satisfy $S_i|\psi\rangle = |\psi\rangle$ for all $S_i
 When an error $E$ (a Pauli operator) occurs, the corrupted state
 $E|\psi\rangle$ may no longer be a $+1$ eigenstate of all stabilizers.
 The syndrome is determined by the commutation relations: measuring
-$S_i$ yields $+1$ if $[E, S_i] = 0$ (commute), and $-1$ if $\{E, S_i\}
-= 0$ (anti-commute). Mathematically, if we define syndrome bit $s_i
+$S_i$ yields $+1$ if $ES_i = S_iE$ (commute), and $-1$ if $ES_i = -S_iE$
+(anti-commute). Mathematically, if we define syndrome bit $s_i
 \in \{0, 1\}$ where $S_i E = (-1)^{s_i} E S_i$, then the syndrome
 vector $\mathbf{s} = (s_1, \ldots, s_m)$ can be used to determine the error.
 
@@ -178,12 +186,17 @@ information to infer the error pattern and apply corrections.
 We use Stim's Detector Error Model (DEM) format~\cite{gidney2021stim}
 to represent error mechanisms and their effects. A DEM file describes
 each error mechanism with its probability, affected detectors (D\#),
-and affected logical observables (L\#). Example: \texttt{error(0.027)
-D0 D1} triggers detectors D0 and D1 with probability 0.027;
-\texttt{error(0.101) D0 L0}
-triggers D0 and flips logical observable L0 with probability 0.101.
-Here, we only focus on the number of errors that error and will
-ignore the probability.
+and affected logical observables (L\#). For example:
+
+\begin{lstlisting}[language={}]
+error(0.027) D0 D1
+error(0.101) D0 L0
+\end{lstlisting}
+
+The first line triggers detectors D0 and D1 with probability 0.027;
+the second line triggers D0 and flips logical observable L0 with
+probability 0.101. In this work, we only focus on the number of errors
+that occur and ignore the probability values.
 
 \subsection{Zero-Detector Verification}
 
@@ -212,26 +225,32 @@ A code with distance $d$ can reliably correct up to $t =
 error patterns $E_1$ and $E_2$ with $|E_1|, |E_2| \leq t$ must have
 distinct syndromes; otherwise $E_1 \oplus E_2$ would be a zero-detector
 logical error with weight at most $2t < d$, contradicting the
-definition of distance.
+definition of distance. This guarantee assumes an \textit{optimal
+decoder} that, given a syndrome, selects the minimum-weight error
+pattern consistent with that syndrome, thereby ensuring correct
+decoding for all errors up to weight $t$.
 
 \section{SAT Encoding Methodology}
 
 Given $n$ error mechanisms, $m$ detectors, and $\ell$ logical
-observables, we create boolean variable $e_i$ for each error
-mechanism and add following constraints:
+observables, we create a boolean variable $e_i$ for each error
+mechanism and add the following constraints:
 \begin{enumerate}
   \item \textit{Detector}: $\bigoplus_{i
-    \in \text{affects}(D_j)} e_i = 0$ for each detector;
+    \in \text{affects}(D_j)} e_i = 0$ for each detector $D_j$;
   \item \textit{Observable}: $\bigvee_{k} (\bigoplus_{i \in
-    \text{affects}(L_k)} e_i = 1)$;
+    \text{affects}(L_k)} e_i = 1)$ for each logical observable $L_k$;
   \item \textit{Cardinality}: $\sum_i e_i \leq k$.
 \end{enumerate}
-If the SAT solver finds a solution, it is an undetectable logical error with
-$\leq k$ errors.
+If the SAT solver finds a solution, the solution represents an
+undetectable logical error with
+at most $k$ errors, demonstrating that the distance of the code is at most $k$.
+Conversely, if the solver proves UNSAT, then no such error pattern exists,
+certifying that the code distance is at least $k+1$.
 
 \subsection{XOR Encoding with Tseitin Transformation}
 
-XOR constraints must be converted to CNF using Tseitin
+XOR constraints must be converted to CNF using the Tseitin
 transformation. For a base-$b$ XOR gate $c = e_1 \oplus e_2 \oplus
 \cdots \oplus e_b$, we enumerate all $2^b$ input combinations and
 generate $2^{b-1}$ clauses enforcing $c = 1$ when an odd number of
@@ -255,8 +274,6 @@ This achieves depth $O(\log_b n)$ for better unit propagation.
 
 Higher base values reduce the number of auxiliary variables but
 increase clause complexity exponentially ($2^{b-1}$ clauses per gate).
-We experiment with $b \in \{2, 3, 4\}$ to find the optimal
-trade-off.
 
 \subsection{Cardinality Constraints}
 
@@ -271,7 +288,8 @@ sorted unary counters from its children: if the left child outputs
 $(l_1, \ldots, l_a)$ and the right outputs $(r_1, \ldots, r_b)$, the
 merged output $(o_1, \ldots, o_{a+b})$ satisfies $o_i = 1$ iff at least
 $i$ inputs below are true. The merge operation uses clauses of the
-form $l_i \land r_j \Rightarrow o_{i+j}$. At the root, we enforce $o_{k+1}
+form $l_i \land r_j \Rightarrow o_{i+j}$. At the root, it is enforced
+that $o_{k+1}
 = 0$ to guarantee at most $k$ variables are true. This encoding
 requires $O(n \log n)$ auxiliary variables and $O(nk)$ clauses, and
 provides strong unit propagation.
@@ -282,8 +300,16 @@ Our implementation uses Python with PySAT and
 CaDiCaL~\cite{BiereFallerFazekasFleuryFroleyks-CAV24}, a
 state-of-the-art CDCL solver. We use Stim~\cite{gidney2021stim} to
 generate detector error models from quantum circuits.
+
+\subsection{Bug Discovery in Nature Paper}
+
+We applied our method to surface code implementations from a Nature
+paper~\cite{bluvstein2025fault}, where the authors claimed to have implemented
+a variant of the surface code that can correct $\frac{d-3}{2}$
+errors for distance $d$.
+
 Table~\ref{tab:problem_sizes} shows the problem scales for different
-code distances.
+code distances in the buggy version of the surface code.
 
 \begin{table}[htbp]
   \centering
@@ -291,7 +317,8 @@ code distances.
   \label{tab:problem_sizes}
   \begin{tabular}{cccc}
     \toprule
-    \textbf{Dist.} & \textbf{Errors} & \textbf{Detectors} & \textbf{CNF Vars} \\
+    \textbf{Distance} & \textbf{Errors} & \textbf{Detectors} &
+    \textbf{CNF Vars} \\
     \midrule
     3 & 1 & 16 & 438 \\
     5 & 3 & 72 & 3,392 \\
@@ -302,18 +329,10 @@ code distances.
     \bottomrule
   \end{tabular}
 \end{table}
-
-\subsection{Bug Discovery in Nature Paper}
-
-We applied our method to surface code implementations from a Nature
-paper~\cite{bluvstein2025fault}, where they claimed they implemented
-a variant of the surface code. Which can correct $\frac{d-3}{2}$
-errors for distance $d$.
-
 Table~\ref{tab:results} shows our
-findings: \textbf{distances 11 and 13 fail to correct claimed
-errors}. The distance-11 code corrects only 3 errors (not 4), and
-distance-13 corrects only 4 (not 5).
+findings: \textbf{distances 11 and 13 fail to correct the claimed number of
+errors}. The distance-11 code corrects only 3 errors (not 4), and the
+distance-13 code corrects only 4 (not 5).
 
 \begin{table}[htbp]
   \centering
@@ -335,26 +354,40 @@ distance-13 corrects only 4 (not 5).
   \end{tabular}
 \end{table}
 
-Our SAT solver found explicit counterexamples---error patterns
-triggering no detectors but flipping the logical observable. For
-distance-11, an 8-error pattern (vs.\ expected 10) demonstrates a
-``shortcut'' through the code. These counterexamples provide valuable
-debugging information, identifying exactly which error mechanisms
-combine to defeat error correction.
-\pengyu{TODO: add counterexamples}
+Our SAT solver not only proves the existence of error patterns that
+trigger no detectors while flipping a logical observable but also
+provides explicit counterexamples. For the distance-11 code, an 8-error pattern
+(versus the expected minimum of 11) demonstrates a ``shortcut'' through
+the code. These counterexamples provide valuable debugging information,
+pinpointing exactly which error mechanisms combine to defeat error
+correction.
 
-\subsection{Performance Analysis}
+The root cause of this bug appears to be incorrect extrapolation from
+smaller code distances. While the observed sequence (0, 1, 2, 3) for
+distances 3, 5, 7, 9 naturally suggests the pattern continues with 4
+for distance 11, our formal verification reveals this intuition is
+incorrect. This highlights the importance of formal verification in
+quantum error correction: properties that hold for small instances do
+not necessarily generalize to larger systems.
 
-Figure~\ref{fig:sat_perf} and~\ref{fig:unsat_perf} compare SAT
-(bug-finding) vs UNSAT (verification) performance. Finding
-counterexamples is fast; proving correctness grows rapidly with problem size.
+\subsection{Performance Analysis: SAT vs UNSAT}
+Figure~\ref{fig:unsat_perf} compares SAT
+(bug finding) vs UNSAT (verification) performance. Finding
+counterexamples is fast, but the time required for proving
+correctness grows rapidly with problem size.
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.85\columnwidth]{../perf_filtered_plot.pdf}
-  \caption{SAT performance: Finding bugs is fast}
-  \label{fig:sat_perf}
-\end{figure}
+We notice that for small instances, SAT is sometimes slower than UNSAT.
+This might be because when the code is small, the relative difference between
+$d$ and $d-1$ is large, making UNSAT easier to prove.
+In an extreme case, when $d=3$, we are trying to prove that $0$
+errors cannot trigger any detectors while flipping a logical observable,
+which is obviously impossible.
+% \begin{figure}[htbp]
+%   \centering
+%   \includegraphics[width=0.85\columnwidth]{../perf_filtered_plot.pdf}
+%   \caption{SAT performance: Finding bugs is fast}
+%   \label{fig:sat_perf}
+% \end{figure}
 
 \begin{figure}[htbp]
   \centering
@@ -362,41 +395,153 @@ counterexamples is fast; proving correctness grows rapidly with problem size.
   \caption{UNSAT performance: Verification is slow}
   \label{fig:unsat_perf}
 \end{figure}
+\subsection{Performance Analysis: Different XOR Encoding Strategies}
 
 Figure~\ref{fig:xor_comparison} compares XOR encoding strategies
 (chain vs tree, base-2 vs base-3). Tree-based encodings provide
-better propagation.
+better propagation and thus are faster in both SAT and UNSAT
+problems. However, we do not see a significant difference in
+performance between base-2 and base-3 encodings.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.85\columnwidth]{../perf_comparison.pdf}
+  \includegraphics[width=\columnwidth]{../perf_comparison.pdf}
   \caption{Comparison of XOR encoding strategies}
   \label{fig:xor_comparison}
 \end{figure}
 
-Table~\ref{tab:timing} shows timing results. Build time scales
-polynomially; SAT solve remains fast; UNSAT grows dramatically
-(distance-13 times out after 10 min).
+% Table~\ref{tab:timing} shows timing results. Build time scales
+% polynomially; SAT solving remains fast; UNSAT grows dramatically
+% (distance 13 times out after 10 minutes).
 
-\begin{table}[htbp]
+% \begin{table}[htbp]
+%   \centering
+%   \caption{Verification timing (seconds)}
+%   \label{tab:timing}
+%   \begin{tabular}{ccccc}
+%     \toprule
+%     \textbf{Dist.} & \textbf{Err} & \textbf{Result} & \textbf{Build}
+%     & \textbf{Solve} \\
+%     \midrule
+%     % Add timing data here
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+\subsection{Performance Analysis: Different Solvers}
+We also tested the performance of solving the SAT and UNSAT problems
+using other solvers,
+including CryptoMiniSat~\cite{soos2016cryptominisat},
+MaxSAT(RC2)~\cite{ignatiev2019rc2}, and Z3~\cite{de2008z3}.
+
+We chose these solvers because CryptoMiniSat has native support for
+XOR constraints,
+MaxSAT(RC2) is optimized for cardinality constraints, and Z3 has the
+potential to leverage SMT reasoning for better performance.
+
+Throughout this subsection, we use the ``correct'' implementation of
+the surface code and base-2 chain XOR encoding when applicable.
+\subsubsection{Results using CaDiCaL}
+\Cref{tab:cadical_results} shows the results using CaDiCaL. CaDiCaL
+is able to solve the UNSAT problem up to distance 9 but fails to
+solve the UNSAT problem at distance 11. This is already the best
+performance among all solvers.
+\begin{table}[h]
   \centering
-  \caption{Verification timing (seconds)}
-  \label{tab:timing}
-  \begin{tabular}{ccccc}
+  \caption{Results using CaDiCaL}
+  \label{tab:cadical_results}
+  \begin{tabular}{cccccc}
     \toprule
-    \textbf{Dist.} & \textbf{Err} & \textbf{Result} & \textbf{Build}
-    & \textbf{Solve} \\
+    \textbf{Distance} & \textbf{Errors} & \textbf{Result} & \textbf{Num vars} &
+    \textbf{Build Time} & \textbf{Solve Time} \\
+    \midrule
+    3 & 2 & UNSAT & 679 & 0.002 & 0.0001 \\
+    3 & 3 & SAT & 679 & 0.002 & 0.0002 \\
+    5 & 4 & UNSAT & 4479 & 0.063 & 0.024 \\
+    5 & 5 & SAT & 4479 & 0.066 & 0.011 \\
+    7 & 6 & UNSAT & 14461 & 0.218 & 1.623 \\
+    7 & 7 & SAT & 14461 & 0.213 & 0.119 \\
+    9 & 8 & UNSAT & 34160 & 0.986 &  72.82 \\
+    9 & 9 & SAT & 34160 & 0.991 & 1.067 \\
+    11 & 10 & UNSAT & 67004 & 4.748 & >3600 \\
+    11 & 11 & SAT & 67004 & 4.748 & 0.007 \\
     \bottomrule
   \end{tabular}
 \end{table}
-\subsection{Results using other solvers}
 \subsubsection{Results using CryptoMiniSat}
+\Cref{tab:cryptominisat_results} shows the results using
+CryptoMiniSat~\cite{soos2016cryptominisat}.
+CryptoMiniSat is able to solve the UNSAT problem up to distance 7
+but fails to solve the UNSAT problem at distance 9. We attribute this
+to the fact that CryptoMiniSat is not optimized for cardinality constraints.
+\begin{table}[h]
+  \centering
+  \caption{Results using CryptoMiniSat}
+  \label{tab:cryptominisat_results}
+  \begin{tabular}{cccccc}
+    \toprule
+    \textbf{Distance} & \textbf{Errors} & \textbf{Result}& \textbf{Num vars} &
+    \textbf{Build Time} & \textbf{Solve Time} \\
+    \midrule
+    3 & 2 & UNSAT & 539 & 0.016 & 0.150 \\
+    3 & 3 & SAT & 539 & 0.012 &0.0003 \\
+    5 & 4 & UNSAT & 3691 & 0.063 & 272.9 \\
+    5 & 5 & SAT & 3691 & 0.066 & 0.0025 \\
+    7 & 6 & UNSAT & 12175 & 0.529 & 91.68 \\
+    7 & 7 & SAT & 12175 & 0.467 & 0.019 \\
+    9 & 8 & UNSAT & 29197 & 2.374 & >3600 \\
+    9 & 9 & SAT & 29197 & 2.554 & 0.059 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 \subsubsection{Results using Z3}
-\subsubsection{Results using MAXSAT}
+\Cref{tab:z3_results} shows the results using Z3~\cite{de2008z3}. Z3
+is the worst among
+all solvers and can only solve the UNSAT problem up to distance 5.
+\begin{table}[h]
+  \centering
+  \caption{Results using Z3}
+  \label{tab:z3_results}
+  \begin{tabular}{ccccc}
+    \toprule
+    \textbf{Distance} & \textbf{Errors} & \textbf{Result} &
+    \textbf{Build Time} & \textbf{Solve Time} \\
+    \midrule
+    3 & 2 & UNSAT & 0.016 & 0.150 \\
+    3 & 3 & SAT & 0.012 & 0.066 \\
+    5 & 4 & UNSAT & 0.063 & 272.9 \\
+    5 & 5 & SAT & 0.066 & 0.697 \\
+    7 & 6 & UNSAT & 0.187 & >3600 \\
+    7 & 7 & SAT & 0.006 & 0.007 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+\subsubsection{Results using MaxSAT(RC2)}
+\Cref{tab:maxsat_results} shows the results using
+MaxSAT(RC2)~\cite{ignatiev2019rc2}. RC2 is
+on par with CryptoMiniSat but has the advantage of not requiring any
+prior knowledge and can find the exact error-correcting capability in one shot.
+\begin{table}[h]
+  \centering
+  \caption{Results using MaxSAT}
+  \label{tab:maxsat_results}
+  \begin{tabular}{cccccc}
+    \toprule
+    \textbf{Distance}  & \textbf{Result} & \textbf{Num hard clauses}
+    & \textbf{Num soft clauses}
+    & \textbf{Build Time} & \textbf{Solve Time} \\
+    \midrule
+    3 & 3 & 506 & 74 & 0.001 & 0.002 \\
+    5 & 5 & 2758 & 382 & 0.002 & 0.321 \\
+    7 & 7 & 8034 & 1094 & 0.004 & 96.3 \\
+    9 & 9 & 17606 & 2378 & 0.010 & >3600 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 \section{Challenges and Limitations}
-We found that verification is significantly harder than bug-finding.
-We believe the following factors are the reasons:
+Through our experiments, we found that verification is significantly
+harder than bug finding.
+We believe the following factors explain this:
 
 \textbf{UNSAT Problem Difficulty}: Verification requires proving
 UNSAT---that no satisfying assignment exists. This is inherently
@@ -419,32 +564,52 @@ proofs~\cite{haken1985intractability}. Combined with XOR constraints,
 this creates a particularly challenging problem structure.
 
 Together, these factors make verification substantially harder than
-bug-finding, explaining the dramatic performance gap observed in our
+bug finding, explaining the dramatic performance gap observed in our
 experiments.
 
 \subsection{A Proof Complexity Perspective}
 
-It is well known that resolution is intractable for the pigeonhole principle: any resolution refutation of $\text{PHP}_{n+1}^n$ has size $2^{\Omega(n)}$~\cite{haken1985intractability}. This classical lower bound serves as a canonical benchmark for reasoning about counting constraints in CNF.
+It is well known that resolution is intractable for the pigeonhole
+principle: any resolution refutation of $\text{PHP}_{n+1}^n$ has size
+$2^{\Omega(n)}$~\cite{haken1985intractability}. This classical lower
+bound serves as a canonical benchmark for reasoning about counting
+constraints in CNF.
 
-A closely related structure arises in our setting. Consider variables $x_1,\ldots,x_{n+1}$ and the contradictory formula
+A closely related structure arises in our setting. Consider variables
+$x_1,\ldots,x_{n+1}$ and the contradictory formula
 \[
   \bigwedge_{i=1}^{n+1} x_i
   \;\land\;
   \sum_{i=1}^{n+1} x_i \le k.
 \]
-This formula is an instance of the surface code problem when all detectors only detect two errors, and captures a simple form of global counting inconsistency. The proof complexity of the resulting CNF depends on the particular encoding of the cardinality constraint into clauses.
+This formula is an instance of the surface code problem when all
+detectors only detect two errors, and captures a simple form of
+global counting inconsistency. The proof complexity of the resulting
+CNF depends on the particular encoding of the cardinality constraint
+into clauses.
 
-Under the \emph{pigeonhole encoding} of cardinality constraints~\cite{WARNERS199863}, the formula above contains, as a projection, an instance of the pigeonhole principle. Consequently, every resolution refutation of this encoding has exponential size, by an immediate reduction to the lower bound of~\cite{haken1985intractability}.
+Under the \emph{pigeonhole encoding} of cardinality
+constraints~\cite{WARNERS199863}, the formula above contains, as a
+projection, an instance of the pigeonhole principle. Consequently,
+every resolution refutation of this encoding has exponential size, by
+an immediate reduction to the lower bound of~\cite{haken1985intractability}.
 
-The situation for other standard encodings (such as totalizer, sorting-network, or binary-adder encodings) is less well understood. Existing lower bounds do not directly apply, and it remains open whether these alternative encodings also admit exponential resolution lower bounds or whether some of them may yield polynomial-size refutations. Establishing the precise proof complexity of these cardinality encodings is an interesting direction for further investigation.
+The situation for other standard encodings (such as totalizer,
+sorting-network, or binary-adder encodings) is less well understood.
+Existing lower bounds do not directly apply, and it remains open
+whether these alternative encodings also admit exponential resolution
+lower bounds or whether some of them may yield polynomial-size
+refutations. Establishing the precise proof complexity of these
+cardinality encodings is an interesting direction for further investigation.
 
 \section{Related Work}
-
-\subsection{Quantum Error Correction Verification}
-
-\subsection{SAT-Based Verification}
-
-\pengyu{TODO: add related work}
+There has been prior work on verifying quantum error correction codes
+using SMT solvers, for example, \cite{fang2024symbolic}. However,
+their proof relies on a specific decoder and cannot generalize to
+other codes. A more general approach is proposed in
+\cite{chen2025verifying} using SMT solvers. However,
+their scalability is not satisfactory: it takes 70 hours to verify a
+distance-7 code.
 
 \section{Conclusion and Future Work}
 
@@ -454,19 +619,19 @@ satisfiability with XOR constraints for detectors, cardinality
 constraints for error bounds, and disjunctive constraints for logical
 observables. Our method discovered bugs in a published Nature paper's
 surface code implementation, where distance-11 and distance-13 codes
-fail to achieve claimed error correction capability.
+fail to achieve their claimed error correction capability.
 
 Our experiments reveal a fundamental challenge: SAT solvers
 efficiently find counterexamples in faulty implementations, but
 proving correctness (UNSAT) is significantly harder due to the
-combination of XOR constraints, cardinality constraints, and the need
-to exhaustively rule out all possibilities.
+combination of XOR constraints, cardinality constraints, and the
+need to exhaustively rule out all possibilities.
 
-For future work, we propose a hybrid SAT + theorem prover approach.
-SAT solvers excel at bug-finding and search space pruning, while
+For future work, we propose a hybrid SAT and theorem prover approach.
+SAT solvers excel at bug finding and search space pruning, while
 theorem provers (e.g., Lean) provide formal correctness guarantees. A
 hybrid approach could use SAT for rapid counterexample detection and
-pruning, then employ theorem provers to formally verify correctness.
+pruning and then employ theorem provers to formally verify correctness.
 
 \bibliography{report}
 

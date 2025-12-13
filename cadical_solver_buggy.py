@@ -43,7 +43,6 @@ def encode_xor_false_cadical_tseitin(solver, vars, base_len=2):
         encode_xor_false_cadical_bruteforce(solver, vars)
 
     from math import ceil
-
     num_aux_vars = ceil((len(vars) - 1) / (base_len - 1))
 
     # For XOR chain: x1 XOR x2 XOR ... XOR xn = False
@@ -146,10 +145,7 @@ def encode_xor_false_cadical(solver, vars, method, base_len=2):
 
 
 def build_verification_model(
-    dem_path: str,
-    max_errors: int,
-    xor_encoding_method="chain_tseitin",
-    base_len=2,
+    dem_path: str, max_errors: int, xor_encoding_method="chain_tseitin", base_len=2,
 ):
     """
     Build SAT model from a DEM file to verify if there exists
@@ -319,28 +315,24 @@ if __name__ == "__main__":
     # for distance in [3, 5, 7, 9, 11]:
     xor_encoding_method = "chain_tseitin"
     max_error_dict = {
-        3: [2, 3],
-        5: [4, 5],
-        7: [6, 7],
-        9: [8, 9],
-        11: [10, 11],
-        13: [12, 13],
+        3: [1, 2],
+        5: [3, 4],
+        7: [4, 5],
+        9: [6, 7],
+        11: [7, 8],
+        13: [9, 10],
     }
     perf_dict = {}
-    for xor_encoding_method in ["tree_tseitin"]:
-        for base_len in [2]:
+    for xor_encoding_method in ["chain_tseitin", "tree_tseitin"]:
+        for base_len in [2, 3]:
             for distance in [3, 5, 7, 9, 11, 13]:
                 for max_error in max_error_dict[distance]:
                     print("--------------------------------")
-                    print(
-                        f"Testing distance {distance} with max error {max_error} errors"
-                    )
-                    dem_path = get_dem_path(distance, buggy=False)
+                    print(f"Testing distance {distance} with max error {max_error} errors")
+                    dem_path = get_dem_path(distance, buggy=True)
                     start_time = time.time()
                     solver, error_vars, detector_effects, logical_effects = (
-                        build_verification_model(
-                            dem_path, max_error, xor_encoding_method
-                        )
+                        build_verification_model(dem_path, max_error, xor_encoding_method)
                     )
                     print(f"num vars: {solver.nof_vars()}")
                     build_time = time.time() - start_time
@@ -349,11 +341,7 @@ if __name__ == "__main__":
                     sat = solver.solve()
                     check_time = time.time() - start_time
                     print(f"Check time: {check_time} seconds")
-                    perf_dict[(distance, max_error, xor_encoding_method, base_len)] = (
-                        build_time,
-                        check_time,
-                        sat,
-                    )
+                    perf_dict[(distance, max_error, xor_encoding_method, base_len)] = (build_time, check_time, sat)
                     if sat:
                         print(
                             f"A code with distance {distance} can't tolerate {max_error} loss errors"
@@ -371,14 +359,6 @@ if __name__ == "__main__":
                     solver.delete()
 
     with open("perf_dict.csv", "w") as f:
-        f.write(
-            "distance,max_error,xor_encoding_method,base_len,build_time,check_time,sat\n"
-        )
-        for (distance, max_error, xor_encoding_method, base_len), (
-            build_time,
-            check_time,
-            sat,
-        ) in perf_dict.items():
-            f.write(
-                f"{distance},{max_error},{xor_encoding_method},{base_len},{build_time},{check_time},{sat}\n"
-            )
+        f.write("distance,max_error,xor_encoding_method,base_len,build_time,check_time,sat\n")
+        for (distance, max_error, xor_encoding_method, base_len), (build_time, check_time, sat) in perf_dict.items():
+            f.write(f"{distance},{max_error},{xor_encoding_method},{base_len},{build_time},{check_time},{sat}\n")
