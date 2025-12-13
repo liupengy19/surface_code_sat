@@ -142,7 +142,7 @@ one of the most promising quantum error correction codes due to: (1)
 local nearest-neighbor interactions compatible with many hardware
 platforms, (2) high error threshold ($\sim 1\%$, below which error
 correction becomes beneficial), and (3) efficient
-decoding via almost linear-time algorithms~\cite{higgott2022pymatching}
+decoding via near-linear-time algorithms~\cite{higgott2022pymatching}
 that are also near optimal. The surface code has been successfully
 demonstrated on multiple experimental platforms, including
 superconducting qubits~\cite{google2025quantum} and neutral
@@ -380,7 +380,7 @@ We notice that for small instances, SAT is sometimes slower than UNSAT.
 This might be because when the code is small, the relative difference between
 $d$ and $d-1$ is large, making UNSAT easier to prove.
 In an extreme case, when $d=3$, we are trying to prove that $0$
-errors cannot trigger any detectors while flipping a logical observable,
+errors can trigger a logical observable,
 which is obviously impossible.
 % \begin{figure}[htbp]
 %   \centering
@@ -392,7 +392,8 @@ which is obviously impossible.
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.85\columnwidth]{../perf_filtered_plot_unsat.pdf}
-  \caption{UNSAT performance: Verification is slow}
+  \caption{Solving time for the buggy surface code. The UNSAT problem
+  is much harder to solve than the SAT problem when the code distance is large.}
   \label{fig:unsat_perf}
 \end{figure}
 \subsection{Performance Analysis: Different XOR Encoding Strategies}
@@ -444,7 +445,8 @@ the surface code and base-2 chain XOR encoding when applicable.
 \Cref{tab:cadical_results} shows the results using CaDiCaL. CaDiCaL
 is able to solve the UNSAT problem up to distance 9 but fails to
 solve the UNSAT problem at distance 11. This is already the best
-performance among all solvers.
+performance among all solvers. The build time shows how long it takes
+to build the model, which only grows polynomially with the number of variables.
 \begin{table}[h]
   \centering
   \caption{Results using CaDiCaL}
@@ -469,7 +471,8 @@ performance among all solvers.
 \end{table}
 \subsubsection{Results using CryptoMiniSat}
 \Cref{tab:cryptominisat_results} shows the results using
-CryptoMiniSat~\cite{soos2016cryptominisat}.
+CryptoMiniSat~\cite{soos2016cryptominisat}. We use the native XOR
+encoding support of CryptoMiniSat instead of using the Tseitin transformation.
 CryptoMiniSat is able to solve the UNSAT problem up to distance 7
 but fails to solve the UNSAT problem at distance 9. We attribute this
 to the fact that CryptoMiniSat is not optimized for cardinality constraints.
@@ -479,7 +482,7 @@ to the fact that CryptoMiniSat is not optimized for cardinality constraints.
   \label{tab:cryptominisat_results}
   \begin{tabular}{cccccc}
     \toprule
-    \textbf{Distance} & \textbf{Errors} & \textbf{Result}& \textbf{Num vars} &
+    \textbf{Distance} & \textbf{Errors} & \textbf{Result}& \textbf{Num. vars} &
     \textbf{Build Time} & \textbf{Solve Time} \\
     \midrule
     3 & 2 & UNSAT & 539 & 0.016 & 0.150 \\
@@ -494,7 +497,10 @@ to the fact that CryptoMiniSat is not optimized for cardinality constraints.
   \end{tabular}
 \end{table}
 \subsubsection{Results using Z3}
-\Cref{tab:z3_results} shows the results using Z3~\cite{de2008z3}. Z3
+\Cref{tab:z3_results} shows the results using Z3~\cite{de2008z3}.
+We use the boolean theory, linear integer arithmetic and modular
+arithmetic theories.
+Z3
 is the worst among
 all solvers and can only solve the UNSAT problem up to distance 5.
 \begin{table}[h]
@@ -517,17 +523,20 @@ all solvers and can only solve the UNSAT problem up to distance 5.
 \end{table}
 \subsubsection{Results using MaxSAT(RC2)}
 \Cref{tab:maxsat_results} shows the results using
-MaxSAT(RC2)~\cite{ignatiev2019rc2}. RC2 is
-on par with CryptoMiniSat but has the advantage of not requiring any
+MaxSAT(RC2)~\cite{ignatiev2019rc2}.
+In MaxSAT, we use the same XOR encoding, but instead of using
+cardinality constraints, we ask the solver to find the minimum number
+of errors that can trigger the logical observable.
+RC2 is comparable to CryptoMiniSat but has the advantage of not requiring any
 prior knowledge and can find the exact error-correcting capability in one shot.
 \begin{table}[h]
   \centering
-  \caption{Results using MaxSAT}
+  \caption{Results using MaxSAT(RC2)}
   \label{tab:maxsat_results}
   \begin{tabular}{cccccc}
     \toprule
-    \textbf{Distance}  & \textbf{Result} & \textbf{Num hard clauses}
-    & \textbf{Num soft clauses}
+    \textbf{Distance}  & \textbf{Result} & \textbf{Num. hard clauses}
+    & \textbf{Num. soft clauses}
     & \textbf{Build Time} & \textbf{Solve Time} \\
     \midrule
     3 & 3 & 506 & 74 & 0.001 & 0.002 \\
